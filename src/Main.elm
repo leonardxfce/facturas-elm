@@ -4,12 +4,13 @@ import Browser
 import Html exposing (Html, button, div, h1, input, li, text, ul)
 import Html.Attributes exposing (placeholder, type_, value)
 import Html.Events exposing (onClick, onInput)
+import Json.Decode as Decode
 import Json.Encode as Encode
 
 
 -- PORTS
 
-port savePedidos : Encode.Value -> Cmd msg
+port saveStorage : Encode.Value -> Cmd msg
 
 
 -- MODEL
@@ -51,17 +52,9 @@ type alias Model =
 
 initialModel : Model
 initialModel =
-    { catalogo =
-        [ { id = 1, nombre = "Café", precio = 150.0 }
-        , { id = 2, nombre = "Medialuna", precio = 80.0 }
-        ]
-    , pedidos =
-        [ { id = 1
-          , items = [ { productoId = 1, cantidad = 2 } ]
-          , estado = Borrador
-          }
-        ]
-    , nextProductoId = 3
+    { catalogo = []
+    , pedidos = []
+    , nextProductoId = 1
     , nuevoProductoNombre = ""
     , nuevoProductoPrecio = ""
     , productoEditando = Nothing
@@ -93,7 +86,7 @@ update msg model =
                 nuevoModel =
                     { model | pedidos = List.map actualizarPedido model.pedidos }
             in
-            ( nuevoModel, savePedidos (encodePedidos nuevoModel.pedidos) )
+            ( nuevoModel, saveStorage (encodeModel nuevoModel) )
 
         InputNombreProducto nombre ->
             ( { model | nuevoProductoNombre = nombre }, Cmd.none )
@@ -110,17 +103,22 @@ update msg model =
                 Just id ->
                     let
                         actualizar p = if p.id == id then { p | nombre = nombre, precio = precio } else p
+                        nuevoModel = { model | catalogo = List.map actualizar model.catalogo, productoEditando = Nothing, nuevoProductoNombre = "", nuevoProductoPrecio = "" }
                     in
-                    ( { model | catalogo = List.map actualizar model.catalogo, productoEditando = Nothing, nuevoProductoNombre = "", nuevoProductoPrecio = "" }, Cmd.none )
+                    ( nuevoModel, saveStorage (encodeModel nuevoModel) )
 
                 Nothing ->
                     let
                         nuevoProducto = { id = model.nextProductoId, nombre = nombre, precio = precio }
+                        nuevoModel = { model | catalogo = model.catalogo ++ [ nuevoProducto ], nextProductoId = model.nextProductoId + 1, nuevoProductoNombre = "", nuevoProductoPrecio = "" }
                     in
-                    ( { model | catalogo = model.catalogo ++ [ nuevoProducto ], nextProductoId = model.nextProductoId + 1, nuevoProductoNombre = "", nuevoProductoPrecio = "" }, Cmd.none )
+                    ( nuevoModel, saveStorage (encodeModel nuevoModel) )
 
         EliminarProducto id ->
-            ( { model | catalogo = List.filter (\p -> p.id /= id) model.catalogo }, Cmd.none )
+            let
+                nuevoModel = { model | catalogo = List.filter (\p -> p.id /= id) model.catalogo }
+            in
+            ( nuevoModel, saveStorage (encodeModel nuevoModel) )
 
         EditarProducto id ->
             case List.filter (\p -> p.id == id) model.catalogo |> List.head of
@@ -128,10 +126,21 @@ update msg model =
                 Nothing -> ( model, Cmd.none )
 
 
-encodePedidos : List Pedido -> Encode.Value
-encodePedidos pedidos =
-    Encode.list encodePedido pedidos
+encodeModel : Model -> Encode.Value
+encodeModel model =
+    Encode.object
+        [ ( "catalogo", Encode.list encodeProducto model.catalogo )
+        , ( "pedidos", Encode.list encodePedido model.pedidos )
+        , ( "nextProductoId", Encode.int model.nextProductoId )
+        ]
 
+encodeProducto : Producto -> Encode.Value
+encodeProducto p =
+    Encode.object
+        [ ( "id", Encode.int p.id )
+        , ( "nombre", Encode.string p.nombre )
+        , ( "precio", Encode.float p.precio )
+        ]
 
 encodePedido : Pedido -> Encode.Value
 encodePedido p =
@@ -217,13 +226,61 @@ alternarEstado estado =
 -- MAIN
 
 
-main : Program () Model Msg
+main : Program Encode.Value Model Msg
 main =
     Browser.element
-        { init = \_ -> ( initialModel, savePedidos (encodePedidos initialModel.pedidos) )
+        { init = \flags -> 
+            let
+                decoded = Decode.decodeValue decodeModel flags
+                
+                model = case decoded of
+                    Ok m -> m
+                    Err _ -> initialModel
+            in
+            ( model, Cmd.none )
         , view = view
         , update = update
         , subscriptions = \_ -> Sub.none
         }
 
 
+-- DECODERS
+
+decodeModel : Decode.Decoder Model
+decodeModel =
+    Decode.map3 (\c p n -> { initialModel | catalogo = c, pedidos = p, nextProductoId = n })
+        (Decode.field "catalogo" (Decode.list decodeProducto))
+        (Decode.field "pedidos" (Decode.list decodePedido))
+        (Decode.field "nextProductoId" Decode.int)
+
+decodeProducto : Decode.Decoder Producto
+decodeProducto =
+    Decode.map3 Producto
+        (Decode.field "id" Decode.int)
+        (Decode.field "nombre" Decode.string)
+        (Decode.field "precio" (Decode.map (\f -> f) Decode.float))
+
+decodePedido : Decode.Decoder Pedido
+decodePedido =
+    Decode.map3 Pedido
+        (Decode.field "id" Decode.int)
+        (Decode.field "items" (Decode.list decodeItem))
+        (Decode.field "estado" (Decode.string |> Decode.andThen stringToEstadoDecoder))
+
+
+decodeItem : Decode.Decoder Item
+decodeItem =
+    Decode.map2 Item
+        (Decode.field "productoId" Decode.int)
+        (Decode.field "cantidad" Decode.int)
+
+
+stringToEstadoDecoder : String -> Decode.Decoder Estado
+stringToEstadoDecoder str =
+    case str of
+        "Borrador" ->
+            Decode.succeed Borrador
+        "Entregado" ->
+            Decode.succeed Entregado
+        _ ->
+            Decode.fail ("Estado desconocido: " ++ str)

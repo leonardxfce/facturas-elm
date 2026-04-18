@@ -10,14 +10,18 @@
     <div id="elm-app"></div>
     <!-- main.js es el archivo compilado por Elm -->
     <script src="main.js"></script>
-    <!-- app.js es el archivo de inicialización -->
     <script>
+        // Cargar datos completos desde la nueva clave
+        var storedData = localStorage.getItem('facturasData');
+        var initialFlags = storedData ? JSON.parse(storedData) : null;
+
         var app = Elm.Main.init({
-            node: document.getElementById('elm-app')
+            node: document.getElementById('elm-app'),
+            flags: initialFlags
         });
 
-        app.ports.savePedidos.subscribe(function(pedidos) {
-            localStorage.setItem('pedidos', JSON.stringify(pedidos));
+        app.ports.saveStorage.subscribe(function(data) {
+            localStorage.setItem('facturasData', JSON.stringify(data));
         });
     </script>
 </body>
