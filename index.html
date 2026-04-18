@@ -4,10 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pedidos</title>
-    <link rel="stylesheet" href="https://unpkg.com/mvp.css@1.15/mvp.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <style>
+        @media print {
+            button, input {
+                display: none !important;
+            }
+        }
+    </style>
 </head>
 <body>
-    <div id="elm-app"></div>
+    <main class="container" id="elm-app"></main>
     <!-- main.js es el archivo compilado por Elm -->
     <script src="main.js"></script>
     <script>
@@ -22,6 +29,20 @@
 
         app.ports.saveStorage.subscribe(function(data) {
             localStorage.setItem('facturasData', JSON.stringify(data));
+        });
+
+        app.ports.triggerPrint.subscribe(function() {
+            window.print();
+        });
+
+        app.ports.downloadFile.subscribe(function(data) {
+            var blob = new Blob([data.content], { type: 'text/csv' });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = data.name;
+            a.click();
+            URL.revokeObjectURL(url);
         });
     </script>
 </body>

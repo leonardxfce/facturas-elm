@@ -12,5 +12,14 @@ Este archivo documenta quirks, configuraciones y preferencias técnicas para int
 - **Servidor Local:** Se utiliza `bun run serve` para levantar el servidor de desarrollo en `http://localhost:8080`.
 - **Build:** La compilación manual de Elm se realiza mediante `elm make src/Main.elm --output=main.js`.
 
-## Próximos Pasos
-- Completar el ABM de pedidos (Alta, Baja, Modificación).
+## Historial de Cambios
+
+### 18 de Abril de 2026
+- Refactorización a estructura SPA: Separación en Dashboard, Gestión de Productos y Gestión de Pedidos.
+- Implementación de navegación dedicada para la edición de pedidos (aislamiento de estado de búsqueda).
+- Mejora en ABM de pedidos: Alta, Baja y edición de ítems.
+- Validación de datos: Impedir creación de productos vacíos o con precios inválidos.
+- Mejora de UI: Deshabilitación de botones según validez y filtrado inteligente del catálogo.
+- **Calidad de Código:** Configuración e instalación de `elm-format` y `elm-review` con reglas estrictas (código muerto, buenas prácticas, simplificación).
+- **Entorno:** Optimización de `.gitignore` y estandarización del flujo de trabajo con `bun`.
+
