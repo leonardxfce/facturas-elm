@@ -1,16 +1,28 @@
 module Messages exposing (Msg(..))
 
+import Browser
+import Url exposing (Url)
+
 
 type Msg
-    = InputNombreProducto String
+    = LinkClicked Browser.UrlRequest
+    | UrlChanged Url
+    | InputNombreProducto String
     | InputPrecioProducto String
     | InputBusqueda String
     | AgregarProducto
     | EliminarProducto Int
+    | PedirEliminarProducto Int
+    | ConfirmarEliminarProducto
+    | CancelarEliminarProducto
     | EditarProducto Int
     | AgregarPedido
     | EliminarPedido Int
     | AgregarItemAPedido Int Int
+    | CambiarCantidadItem Int Int String
+    | PedirEliminarItem Int Int
+    | ConfirmarEliminarItem
+    | CancelarEliminarItem
     | IrAInicio
     | IrAGestionProductos
     | IrAListadoPedidos

@@ -1,23 +1,8 @@
-module Persistence exposing (decodeModel, encodeModel, modelToCsv)
+module Persistence exposing (decodeModel, encodeModel)
 
 import Json.Decode as Decode
 import Json.Encode as Encode
 import Types exposing (..)
-
-
-modelToCsv : Model -> String
-modelToCsv model =
-    let
-        header =
-            "Tipo,ID,Nombre,Precio/Estado\n"
-
-        productos =
-            List.map (\p -> "Producto," ++ String.fromInt p.id ++ "," ++ p.nombre ++ "," ++ String.fromFloat p.precio) model.catalogo
-
-        pedidos =
-            List.map (\p -> "Pedido," ++ String.fromInt p.id ++ ",," ++ estadoToString p.estado) model.pedidos
-    in
-    header ++ String.join "\n" productos ++ "\n" ++ String.join "\n" pedidos
 
 
 encodeModel : Model -> Encode.Value
@@ -56,9 +41,9 @@ encodeItem i =
         ]
 
 
-decodeModel : Decode.Decoder Model
+decodeModel : Decode.Decoder (Model -> Model)
 decodeModel =
-    Decode.map4 (\c p nP nE -> { initialModel | catalogo = c, pedidos = p, nextProductoId = nP, nextPedidoId = nE })
+    Decode.map4 (\c p nP nE -> \base -> { base | catalogo = c, pedidos = p, nextProductoId = nP, nextPedidoId = nE })
         (Decode.field "catalogo" (Decode.list decodeProducto))
         (Decode.field "pedidos" (Decode.list decodePedido))
         (Decode.field "nextProductoId" Decode.int)

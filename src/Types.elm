@@ -1,4 +1,7 @@
-module Types exposing (Estado(..), Item, Model, Pagina(..), Pedido, Producto, estadoToString, initialModel)
+module Types exposing (Estado(..), Item, Model, Pagina(..), Pedido, Producto, estadoToString, initModel)
+
+import Browser.Navigation as Nav
+import Url exposing (Url)
 
 
 type Estado
@@ -34,7 +37,9 @@ type alias Pedido =
 
 
 type alias Model =
-    { catalogo : List Producto
+    { key : Nav.Key
+    , url : Url
+    , catalogo : List Producto
     , pedidos : List Pedido
     , nextProductoId : Int
     , nextPedidoId : Int
@@ -42,13 +47,17 @@ type alias Model =
     , nuevoProductoPrecio : String
     , busquedaProducto : String
     , productoEditando : Maybe Int
+    , confirmarEliminacionItem : Maybe { pedidoId : Int, productoId : Int }
+    , confirmarEliminacionProducto : Maybe Int
     , paginaActual : Pagina
     }
 
 
-initialModel : Model
-initialModel =
-    { catalogo = []
+initModel : Nav.Key -> Url -> Model
+initModel key url =
+    { key = key
+    , url = url
+    , catalogo = []
     , pedidos = []
     , nextProductoId = 1
     , nextPedidoId = 1
@@ -56,6 +65,8 @@ initialModel =
     , nuevoProductoPrecio = ""
     , busquedaProducto = ""
     , productoEditando = Nothing
+    , confirmarEliminacionItem = Nothing
+    , confirmarEliminacionProducto = Nothing
     , paginaActual = Inicio
     }
 
