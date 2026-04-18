@@ -1,0 +1,11 @@
+{
+    "port": 13990,
+    "webSocketToken": "6388c8e8-250d-4d41-97f4-5c0f2e7cfd1b",
+    "targets": {
+        "index": {
+            "compilationMode": "standard",
+            "browserUiPosition": "BottomLeft",
+            "openErrorOverlay": false
+        }
+    }
+}
