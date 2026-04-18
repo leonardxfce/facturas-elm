@@ -1,0 +1,10 @@
+# Dependencias
+node_modules/
+
+# Elm
+elm-stuff/
+main.js
+
+# OS
+.DS_Store
+Thumbs.db
