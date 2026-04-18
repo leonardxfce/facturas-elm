@@ -8,23 +8,27 @@ import Json.Decode as Decode
 import Json.Encode as Encode
 
 
+
 -- PORTS
+
 
 port saveStorage : Encode.Value -> Cmd msg
 
 
+
 -- MODEL
+
 
 type Estado
     = Borrador
     | Entregado
+
 
 type Pagina
     = Inicio
     | GestionProductos
     | ListadoPedidos
     | EditandoPedido Int
-
 
 
 type alias Producto =
@@ -74,11 +78,12 @@ initialModel =
     }
 
 
+
 -- UPDATE
 
+
 type Msg
-    = CambiarEstado Int Estado
-    | InputNombreProducto String
+    = InputNombreProducto String
     | InputPrecioProducto String
     | InputBusqueda String
     | AgregarProducto
@@ -99,18 +104,6 @@ update msg model =
         -- ...
         InputBusqueda busqueda ->
             ( { model | busquedaProducto = busqueda }, Cmd.none )
-        CambiarEstado id nuevoEstado ->
-            let
-                actualizarPedido p =
-                    if p.id == id then
-                        { p | estado = nuevoEstado }
-                    else
-                        p
-
-                nuevoModel =
-                    { model | pedidos = List.map actualizarPedido model.pedidos }
-            in
-            ( nuevoModel, saveStorage (encodeModel nuevoModel) )
 
         InputNombreProducto nombre ->
             ( { model | nuevoProductoNombre = nombre }, Cmd.none )
@@ -120,48 +113,70 @@ update msg model =
 
         AgregarProducto ->
             let
-                precio = String.toFloat model.nuevoProductoPrecio |> Maybe.withDefault 0.0
-                nombre = String.trim model.nuevoProductoNombre
+                precio =
+                    String.toFloat model.nuevoProductoPrecio |> Maybe.withDefault 0.0
+
+                nombre =
+                    String.trim model.nuevoProductoNombre
             in
             if nombre == "" || precio <= 0 then
                 ( model, Cmd.none )
+
             else
                 case model.productoEditando of
                     Just id ->
                         let
-                            actualizar p = if p.id == id then { p | nombre = nombre, precio = precio } else p
-                            nuevoModel = { model | catalogo = List.map actualizar model.catalogo, productoEditando = Nothing, nuevoProductoNombre = "", nuevoProductoPrecio = "" }
+                            actualizar p =
+                                if p.id == id then
+                                    { p | nombre = nombre, precio = precio }
+
+                                else
+                                    p
+
+                            nuevoModel =
+                                { model | catalogo = List.map actualizar model.catalogo, productoEditando = Nothing, nuevoProductoNombre = "", nuevoProductoPrecio = "" }
                         in
                         ( nuevoModel, saveStorage (encodeModel nuevoModel) )
 
                     Nothing ->
                         let
-                            nuevoProducto = { id = model.nextProductoId, nombre = nombre, precio = precio }
-                            nuevoModel = { model | catalogo = model.catalogo ++ [ nuevoProducto ], nextProductoId = model.nextProductoId + 1, nuevoProductoNombre = "", nuevoProductoPrecio = "" }
+                            nuevoProducto =
+                                { id = model.nextProductoId, nombre = nombre, precio = precio }
+
+                            nuevoModel =
+                                { model | catalogo = model.catalogo ++ [ nuevoProducto ], nextProductoId = model.nextProductoId + 1, nuevoProductoNombre = "", nuevoProductoPrecio = "" }
                         in
                         ( nuevoModel, saveStorage (encodeModel nuevoModel) )
 
         EliminarProducto id ->
             let
-                nuevoModel = { model | catalogo = List.filter (\p -> p.id /= id) model.catalogo }
+                nuevoModel =
+                    { model | catalogo = List.filter (\p -> p.id /= id) model.catalogo }
             in
             ( nuevoModel, saveStorage (encodeModel nuevoModel) )
 
         EditarProducto id ->
             case List.filter (\p -> p.id == id) model.catalogo |> List.head of
-                Just p -> ( { model | nuevoProductoNombre = p.nombre, nuevoProductoPrecio = String.fromFloat p.precio, productoEditando = Just id }, Cmd.none )
-                Nothing -> ( model, Cmd.none )
+                Just p ->
+                    ( { model | nuevoProductoNombre = p.nombre, nuevoProductoPrecio = String.fromFloat p.precio, productoEditando = Just id }, Cmd.none )
+
+                Nothing ->
+                    ( model, Cmd.none )
 
         AgregarPedido ->
             let
-                nuevoPedido = { id = model.nextPedidoId, items = [], estado = Borrador }
-                nuevoModel = { model | pedidos = model.pedidos ++ [ nuevoPedido ], nextPedidoId = model.nextPedidoId + 1 }
+                nuevoPedido =
+                    { id = model.nextPedidoId, items = [], estado = Borrador }
+
+                nuevoModel =
+                    { model | pedidos = model.pedidos ++ [ nuevoPedido ], nextPedidoId = model.nextPedidoId + 1 }
             in
             ( nuevoModel, saveStorage (encodeModel nuevoModel) )
 
         EliminarPedido id ->
             let
-                nuevoModel = { model | pedidos = List.filter (\p -> p.id /= id) model.pedidos }
+                nuevoModel =
+                    { model | pedidos = List.filter (\p -> p.id /= id) model.pedidos }
             in
             ( nuevoModel, saveStorage (encodeModel nuevoModel) )
 
@@ -169,10 +184,13 @@ update msg model =
             let
                 actualizarPedido p =
                     if p.id == pedidoId then
-                        { p | items = p.items ++ [{ productoId = productoId, cantidad = 1 }] }
+                        { p | items = p.items ++ [ { productoId = productoId, cantidad = 1 } ] }
+
                     else
                         p
-                nuevoModel = { model | pedidos = List.map actualizarPedido model.pedidos }
+
+                nuevoModel =
+                    { model | pedidos = List.map actualizarPedido model.pedidos }
             in
             ( nuevoModel, saveStorage (encodeModel nuevoModel) )
 
@@ -198,6 +216,7 @@ encodeModel model =
         , ( "nextPedidoId", Encode.int model.nextPedidoId )
         ]
 
+
 encodeProducto : Producto -> Encode.Value
 encodeProducto p =
     Encode.object
@@ -205,6 +224,7 @@ encodeProducto p =
         , ( "nombre", Encode.string p.nombre )
         , ( "precio", Encode.float p.precio )
         ]
+
 
 encodePedido : Pedido -> Encode.Value
 encodePedido p =
@@ -226,16 +246,29 @@ encodeItem i =
 viewGestionProductos : Model -> Html Msg
 viewGestionProductos model =
     let
-        nombreValido = String.trim model.nuevoProductoNombre /= ""
-        precioValido = (String.toFloat model.nuevoProductoPrecio |> Maybe.withDefault 0.0) > 0
-        formularioValido = nombreValido && precioValido
+        nombreValido =
+            String.trim model.nuevoProductoNombre /= ""
+
+        precioValido =
+            (String.toFloat model.nuevoProductoPrecio |> Maybe.withDefault 0.0) > 0
+
+        formularioValido =
+            nombreValido && precioValido
     in
     div []
         [ button [ onClick IrAInicio ] [ text "Volver al Inicio" ]
         , h1 [] [ text "Gestión de Productos" ]
         , input [ placeholder "Nombre", value model.nuevoProductoNombre, onInput InputNombreProducto ] []
         , input [ placeholder "Precio", type_ "number", value model.nuevoProductoPrecio, onInput InputPrecioProducto ] []
-        , button [ onClick AgregarProducto, disabled (not formularioValido) ] [ text (if model.productoEditando == Nothing then "Agregar Producto" else "Actualizar Producto") ]
+        , button [ onClick AgregarProducto, disabled (not formularioValido) ]
+            [ text
+                (if model.productoEditando == Nothing then
+                    "Agregar Producto"
+
+                 else
+                    "Actualizar Producto"
+                )
+            ]
         , ul [] (List.map viewProducto model.catalogo)
         ]
 
@@ -250,32 +283,12 @@ viewListadoPedidos model =
         ]
 
 
-
 viewProducto : Producto -> Html Msg
 viewProducto producto =
     li []
         [ text (producto.nombre ++ " - $" ++ String.fromFloat producto.precio)
         , button [ onClick (EditarProducto producto.id) ] [ text "Editar" ]
         , button [ onClick (EliminarProducto producto.id) ] [ text "Eliminar" ]
-        ]
-
-
-viewInicio : Model -> Html Msg
-viewInicio model =
-    let
-        nombreValido = String.trim model.nuevoProductoNombre /= ""
-        precioValido = (String.toFloat model.nuevoProductoPrecio |> Maybe.withDefault 0.0) > 0
-        formularioValido = nombreValido && precioValido
-    in
-    div []
-        [ h1 [] [ text "Catálogo de Productos" ]
-        , input [ placeholder "Nombre", value model.nuevoProductoNombre, onInput InputNombreProducto ] []
-        , input [ placeholder "Precio", type_ "number", value model.nuevoProductoPrecio, onInput InputPrecioProducto ] []
-        , button [ onClick AgregarProducto, disabled (not formularioValido) ] [ text (if model.productoEditando == Nothing then "Agregar Producto" else "Actualizar Producto") ]
-        , ul [] (List.map viewProducto model.catalogo)
-        , h1 [] [ text "Pedidos" ]
-        , button [ onClick AgregarPedido ] [ text "Crear Nuevo Pedido" ]
-        , ul [] (List.map viewResumenPedido model.pedidos)
         ]
 
 
@@ -295,23 +308,28 @@ viewEditarPedido model pedido =
         , h1 [] [ text ("Editando Pedido #" ++ String.fromInt pedido.id) ]
         , ul [] (List.map (viewItem model.catalogo) pedido.items)
         , if pedido.estado == Borrador then
-            div [] 
+            div []
                 [ input [ placeholder "Buscar producto...", value model.busquedaProducto, onInput InputBusqueda ] []
                 , if String.isEmpty model.busquedaProducto then
                     div [] []
+
                   else
-                    ul [] (model.catalogo
+                    ul []
+                        (model.catalogo
                             |> List.filter (\p -> String.contains (String.toLower model.busquedaProducto) (String.toLower p.nombre))
-                            |> List.map (viewAgregarProductoAPedido pedido.id))
+                            |> List.map (viewAgregarProductoAPedido pedido.id)
+                        )
                 ]
-          else div [] []
+
+          else
+            div [] []
         ]
 
 
 viewAgregarProductoAPedido : Int -> Producto -> Html Msg
 viewAgregarProductoAPedido pedidoId producto =
     li []
-        [ button [ onClick (AgregarItemAPedido pedidoId producto.id) ] 
+        [ button [ onClick (AgregarItemAPedido pedidoId producto.id) ]
             [ text ("Agregar " ++ producto.nombre ++ " ($" ++ String.fromFloat producto.precio ++ ")") ]
         ]
 
@@ -337,16 +355,6 @@ estadoToString estado =
             "Entregado"
 
 
-alternarEstado : Estado -> Estado
-alternarEstado estado =
-    case estado of
-        Borrador ->
-            Entregado
-
-        Entregado ->
-            Borrador
-
-
 view : Model -> Html Msg
 view model =
     case model.paginaActual of
@@ -365,27 +373,36 @@ view model =
 
         EditandoPedido id ->
             case List.filter (\p -> p.id == id) model.pedidos |> List.head of
-                Just pedido -> viewEditarPedido model pedido
-                Nothing -> viewListadoPedidos model
+                Just pedido ->
+                    viewEditarPedido model pedido
+
+                Nothing ->
+                    viewListadoPedidos model
+
 
 
 -- ...
-
 -- MAIN
 
 
 main : Program Encode.Value Model Msg
 main =
     Browser.element
-        { init = \flags -> 
-            let
-                decoded = Decode.decodeValue decodeModel flags
-                
-                model = case decoded of
-                    Ok m -> m
-                    Err _ -> initialModel
-            in
-            ( model, Cmd.none )
+        { init =
+            \flags ->
+                let
+                    decoded =
+                        Decode.decodeValue decodeModel flags
+
+                    model =
+                        case decoded of
+                            Ok m ->
+                                m
+
+                            Err _ ->
+                                initialModel
+                in
+                ( model, Cmd.none )
         , view = view
         , update = update
         , subscriptions = \_ -> Sub.none
@@ -395,6 +412,7 @@ main =
 
 -- DECODERS
 
+
 decodeModel : Decode.Decoder Model
 decodeModel =
     Decode.map4 (\c p nP nE -> { initialModel | catalogo = c, pedidos = p, nextProductoId = nP, nextPedidoId = nE })
@@ -403,12 +421,14 @@ decodeModel =
         (Decode.field "nextProductoId" Decode.int)
         (Decode.field "nextPedidoId" Decode.int)
 
+
 decodeProducto : Decode.Decoder Producto
 decodeProducto =
     Decode.map3 Producto
         (Decode.field "id" Decode.int)
         (Decode.field "nombre" Decode.string)
-        (Decode.field "precio" (Decode.map (\f -> f) Decode.float))
+        (Decode.field "precio" Decode.float)
+
 
 decodePedido : Decode.Decoder Pedido
 decodePedido =
@@ -430,7 +450,9 @@ stringToEstadoDecoder str =
     case str of
         "Borrador" ->
             Decode.succeed Borrador
+
         "Entregado" ->
             Decode.succeed Entregado
+
         _ ->
             Decode.fail ("Estado desconocido: " ++ str)

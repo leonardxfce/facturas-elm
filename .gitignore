@@ -1,10 +1,12 @@
 # Dependencias
 node_modules/
+package-lock.json
 
 # Elm
 elm-stuff/
 main.js
 debug.log
+review/
 
 # IDEs
 .vscode/
@@ -13,3 +15,6 @@ debug.log
 # OS
 .DS_Store
 Thumbs.db
+
+# Bun
+bun.lock

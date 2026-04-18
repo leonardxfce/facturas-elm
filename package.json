@@ -6,14 +6,24 @@
   "scripts": {
     "watch": "bun x elm-watch hot",
     "serve": "bun x live-server . --port=8080 --no-browser",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "format": "bun x elm-format . --yes",
+    "lint": "bun x elm-review"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
+    "elm-format": "^0.8.8",
+    "elm-review": "^2.13.5",
     "elm-watch": "^1.2.6",
     "live-server": "^1.2.2"
+  },
+  "dependencies": {
+    "elm-review-common": "jfmengels/elm-review-common",
+    "elm-review-documentation": "jfmengels/elm-review-documentation",
+    "elm-review-simplify": "jfmengels/elm-review-simplify",
+    "elm-review-unused": "jfmengels/elm-review-unused"
   }
 }
