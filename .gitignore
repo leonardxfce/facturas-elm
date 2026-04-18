@@ -4,6 +4,11 @@ node_modules/
 # Elm
 elm-stuff/
 main.js
+debug.log
+
+# IDEs
+.vscode/
+.idea/
 
 # OS
 .DS_Store

@@ -3,13 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Facturas Elm</title>
+    <title>Pedidos</title>
+    <link rel="stylesheet" href="https://unpkg.com/mvp.css@1.15/mvp.css">
 </head>
 <body>
     <div id="elm-app"></div>
     <!-- main.js es el archivo compilado por Elm -->
     <script src="main.js"></script>
     <!-- app.js es el archivo de inicialización -->
-    <script src="app.js"></script>
+    <script>
+        var app = Elm.Main.init({
+            node: document.getElementById('elm-app')
+        });
+
+        app.ports.savePedidos.subscribe(function(pedidos) {
+            localStorage.setItem('pedidos', JSON.stringify(pedidos));
+        });
+    </script>
 </body>
 </html>
