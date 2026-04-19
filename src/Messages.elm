@@ -28,4 +28,7 @@ type Msg
     | IrAListadoPedidos
     | IrAEditarPedido Int
     | ExportarAPDF
-    | ExportarCSV
+    | ExportarProductosCSV
+    | ExportarPedidosCSV
+    | CargarProductosCSV
+    | ContenidoCSVRecibido String

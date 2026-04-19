@@ -5,8 +5,8 @@ import Browser.Navigation as Nav
 import Json.Encode as Encode
 import Messages exposing (Msg(..))
 import Persistence exposing (encodeModel)
-import Ports exposing (downloadFile, triggerPrint)
-import Types exposing (Model, Pagina(..))
+import Ports exposing (downloadFile, selectFile, triggerPrint)
+import Types exposing (Model, Pagina(..), estadoToString)
 import Update.Pedidos as UpdatePedidos
 import Url exposing (Url)
 import Url.Parser as Parser exposing ((</>), Parser, int, s)
@@ -158,8 +158,76 @@ update msg model =
         ExportarAPDF ->
             ( model, triggerPrint () )
 
-        ExportarCSV ->
+        ExportarProductosCSV ->
             ( model, downloadFile { name = "productos.csv", content = "Nombre,Precio\n" ++ (model.catalogo |> List.map (\p -> p.nombre ++ "," ++ String.fromFloat p.precio) |> String.join "\n") } )
+
+        ExportarPedidosCSV ->
+            let
+                encabezado =
+                    "PedidoID,Estado,Producto,Cantidad,PrecioUnitario,Subtotal\n"
+
+                -- Convertir un pedido en varias líneas de CSV (una por ítem)
+                pedidoToCsvLines pedido =
+                    pedido.items
+                        |> List.map
+                            (\item ->
+                                String.fromInt pedido.id
+                                    ++ ","
+                                    ++ estadoToString pedido.estado
+                                    ++ ","
+                                    ++ item.nombreSnapshot
+                                    ++ ","
+                                    ++ String.fromInt item.cantidad
+                                    ++ ","
+                                    ++ String.fromFloat item.precioSnapshot
+                                    ++ ","
+                                    ++ String.fromFloat (item.precioSnapshot * toFloat item.cantidad)
+                            )
+                        |> String.join "\n"
+
+                contenido =
+                    encabezado ++ (model.pedidos |> List.map pedidoToCsvLines |> String.join "\n")
+            in
+            ( model, downloadFile { name = "pedidos.csv", content = contenido } )
+
+        CargarProductosCSV ->
+            ( model, selectFile () )
+
+        ContenidoCSVRecibido content ->
+            let
+                lineas =
+                    String.lines content |> List.drop 1 -- Ignorar el header
+
+                procesarLinea linea ( actualCatalogo, nextId ) =
+                    let
+                        partes =
+                            String.split "," linea
+                    in
+                    case partes of
+                        [ nombre, precioStr ] ->
+                            let
+                                precio =
+                                    String.toFloat precioStr |> Maybe.withDefault 0.0
+
+                                nuevoProducto =
+                                    { id = nextId, nombre = nombre, precio = precio }
+                            in
+                            if String.trim nombre /= "" && precio > 0 then
+                                ( actualCatalogo ++ [ nuevoProducto ], nextId + 1 )
+
+                            else
+                                ( actualCatalogo, nextId )
+
+                        _ ->
+                            ( actualCatalogo, nextId )
+
+                ( nuevoCatalogo, finalNextId ) =
+                    List.foldl procesarLinea ( model.catalogo, model.nextProductoId ) lineas
+
+                nuevoModel =
+                    { model | catalogo = nuevoCatalogo, nextProductoId = finalNextId }
+            in
+            ( nuevoModel, saveStorage (encodeModel nuevoModel) )
 
         _ ->
             UpdatePedidos.update msg model saveStorage

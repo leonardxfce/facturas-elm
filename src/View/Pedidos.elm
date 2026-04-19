@@ -111,17 +111,11 @@ viewAgregarProductoAPedido pedidoId producto =
 
 viewItem : List Producto -> Int -> Item -> Html Msg
 viewItem catalogo pedidoId item =
-    let
-        producto =
-            List.filter (\p -> p.id == item.productoId) catalogo
-                |> List.head
-                |> Maybe.withDefault { id = 0, nombre = "Producto desconocido", precio = 0.0 }
-    in
     tr []
-        [ td [] [ text producto.nombre ]
+        [ td [] [ text item.nombreSnapshot ]
         , td [] [ input [ type_ "number", value (String.fromInt item.cantidad), onInput (CambiarCantidadItem pedidoId item.productoId), attribute "min" "1" ] [] ]
-        , td [] [ text ("$" ++ String.fromFloat producto.precio) ]
-        , td [] [ text ("$" ++ String.fromFloat (producto.precio * toFloat item.cantidad)) ]
+        , td [] [ text ("$" ++ String.fromFloat item.precioSnapshot) ]
+        , td [] [ text ("$" ++ String.fromFloat (item.precioSnapshot * toFloat item.cantidad)) ]
         , td []
             [ button [ class "outline secondary", onClick (PedirEliminarItem pedidoId item.productoId), attribute "aria-label" "Eliminar" ] [ text "🗑️" ]
             ]

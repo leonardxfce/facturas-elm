@@ -68,8 +68,10 @@ decodePedido =
 
 decodeItem : Decode.Decoder Item
 decodeItem =
-    Decode.map2 Item
+    Decode.map4 Item
         (Decode.field "productoId" Decode.int)
+        (Decode.field "nombreSnapshot" (Decode.oneOf [ Decode.field "nombreSnapshot" Decode.string, Decode.succeed "Producto Histórico" ]))
+        (Decode.field "precioSnapshot" (Decode.oneOf [ Decode.field "precioSnapshot" Decode.float, Decode.succeed 0.0 ]))
         (Decode.field "cantidad" Decode.int)
 
 

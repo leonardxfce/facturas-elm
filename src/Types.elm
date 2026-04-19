@@ -25,6 +25,8 @@ type alias Producto =
 
 type alias Item =
     { productoId : Int
+    , nombreSnapshot : String
+    , precioSnapshot : Float
     , cantidad : Int
     }
 

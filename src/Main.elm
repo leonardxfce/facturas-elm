@@ -6,6 +6,7 @@ import Json.Decode as Decode
 import Json.Encode as Encode
 import Messages exposing (Msg(..))
 import Persistence exposing (decodeModel)
+import Ports exposing (fileContentReceived)
 import Types exposing (Model, Pagina(..), initModel)
 import Update exposing (update)
 import Url exposing (Url)
@@ -42,7 +43,7 @@ main =
         { init = init
         , view = \model -> { title = "Sistema de Pedidos", body = [ view model ] }
         , update = update
-        , subscriptions = \_ -> Sub.none
+        , subscriptions = \_ -> fileContentReceived ContenidoCSVRecibido
         , onUrlRequest = LinkClicked
         , onUrlChange = UrlChanged
         }

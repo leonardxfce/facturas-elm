@@ -16,7 +16,10 @@ view model =
                 [ h1 [] [ text "Sistema de Facturas" ]
                 , section [] [ button [ class "w-100", onClick IrAGestionProductos ] [ text "Gestión de Productos" ] ]
                 , section [] [ button [ class "w-100", onClick IrAListadoPedidos ] [ text "Gestión de Pedidos" ] ]
-                , section [] [ button [ class "outline w-100", onClick ExportarCSV ] [ text "📊 Exportar CSV" ] ]
+                , section [ class "grid" ]
+                    [ button [ class "outline", onClick ExportarProductosCSV ] [ text "📦 Productos CSV" ]
+                    , button [ class "outline", onClick ExportarPedidosCSV ] [ text "📝 Pedidos CSV" ]
+                    ]
                 ]
 
         GestionProductos ->
@@ -50,7 +53,9 @@ viewGestionProductos model =
         [ header []
             [ button [ class "outline", onClick IrAInicio, attribute "aria-label" "Volver" ] [ text "⬅️" ]
             , h1 [] [ text "Gestión de Productos" ]
+            , button [ class "outline", onClick CargarProductosCSV ] [ text "📥 Importar" ]
             ]
+
         , section []
             [ input [ id "producto-nombre", name "nombre", placeholder "Nombre", value model.nuevoProductoNombre, onInput InputNombreProducto ] []
             , input [ id "producto-precio", name "precio", placeholder "Precio", type_ "number", value model.nuevoProductoPrecio, onInput InputPrecioProducto ] []

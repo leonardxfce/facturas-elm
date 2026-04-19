@@ -28,9 +28,14 @@ update msg model saveStorage =
 
         AgregarItemAPedido pedidoId productoId ->
             let
+                producto =
+                    List.filter (\p -> p.id == productoId) model.catalogo
+                        |> List.head
+                        |> Maybe.withDefault { id = 0, nombre = "Desconocido", precio = 0.0 }
+
                 actualizarPedido p =
                     if p.id == pedidoId then
-                        { p | items = p.items ++ [ { productoId = productoId, cantidad = 1 } ] }
+                        { p | items = p.items ++ [ { productoId = productoId, nombreSnapshot = producto.nombre, precioSnapshot = producto.precio, cantidad = 1 } ] }
 
                     else
                         p
