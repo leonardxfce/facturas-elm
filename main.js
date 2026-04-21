@@ -6204,14 +6204,10 @@ var $elm$core$Maybe$withDefault = F2(
 		}
 	});
 var $author$project$Main$urlToPage = function (url) {
-	var pathLimpio = A2($elm$core$String$startsWith, '/facturas-elm/', url.path) ? A2($elm$core$String$dropLeft, 13, url.path) : url.path;
-	var urlLimpia = _Utils_update(
-		url,
-		{path: pathLimpio});
 	return A2(
 		$elm$core$Maybe$withDefault,
 		$author$project$Types$Inicio,
-		A2($elm$url$Url$Parser$parse, $author$project$Main$routeParser, urlLimpia));
+		A2($elm$url$Url$Parser$parse, $author$project$Main$routeParser, url));
 };
 var $author$project$Main$init = F3(
 	function (flags, url, key) {
@@ -6246,7 +6242,7 @@ var $author$project$Main$init = F3(
 						_Utils_update(
 							modelConPagina,
 							{paginaActual: $author$project$Types$ListadoPedidos}),
-						A2($elm$browser$Browser$Navigation$replaceUrl, key, '/facturas-elm/pedidos'));
+						A2($elm$browser$Browser$Navigation$replaceUrl, key, '/pedidos'));
 				}
 			} else {
 				return _Utils_Tuple2(modelConPagina, $elm$core$Platform$Cmd$none);
@@ -6529,9 +6525,6 @@ var $author$project$Update$Archivos$update = F3(
 		}
 	});
 var $elm$browser$Browser$Navigation$load = _Browser_load;
-var $author$project$Update$Navegacion$prefijoRuta = function (ruta) {
-	return '/facturas-elm' + ruta;
-};
 var $elm$browser$Browser$Navigation$pushUrl = _Browser_pushUrl;
 var $elm$url$Url$addPort = F2(
 	function (maybePort, starter) {
@@ -6633,24 +6626,15 @@ var $author$project$Update$Navegacion$update = F2(
 			case 'IrAInicio':
 				return _Utils_Tuple2(
 					model,
-					A2(
-						$elm$browser$Browser$Navigation$pushUrl,
-						model.key,
-						$author$project$Update$Navegacion$prefijoRuta('/')));
+					A2($elm$browser$Browser$Navigation$pushUrl, model.key, '/'));
 			case 'IrAGestionProductos':
 				return _Utils_Tuple2(
 					model,
-					A2(
-						$elm$browser$Browser$Navigation$pushUrl,
-						model.key,
-						$author$project$Update$Navegacion$prefijoRuta('/productos')));
+					A2($elm$browser$Browser$Navigation$pushUrl, model.key, '/productos'));
 			case 'IrAListadoPedidos':
 				return _Utils_Tuple2(
 					model,
-					A2(
-						$elm$browser$Browser$Navigation$pushUrl,
-						model.key,
-						$author$project$Update$Navegacion$prefijoRuta('/pedidos')));
+					A2($elm$browser$Browser$Navigation$pushUrl, model.key, '/pedidos'));
 			default:
 				var id = msg.a;
 				return _Utils_Tuple2(
@@ -6658,8 +6642,7 @@ var $author$project$Update$Navegacion$update = F2(
 					A2(
 						$elm$browser$Browser$Navigation$pushUrl,
 						model.key,
-						$author$project$Update$Navegacion$prefijoRuta(
-							'/pedidos/' + $elm$core$String$fromInt(id))));
+						'/pedidos/' + $elm$core$String$fromInt(id)));
 		}
 	});
 var $author$project$Types$ConfirmandoEliminarItem = function (a) {
