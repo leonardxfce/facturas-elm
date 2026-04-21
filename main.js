@@ -6246,7 +6246,7 @@ var $author$project$Main$init = F3(
 						_Utils_update(
 							modelConPagina,
 							{paginaActual: $author$project$Types$ListadoPedidos}),
-						A2($elm$browser$Browser$Navigation$replaceUrl, key, '/pedidos'));
+						A2($elm$browser$Browser$Navigation$replaceUrl, key, '/facturas-elm/pedidos'));
 				}
 			} else {
 				return _Utils_Tuple2(modelConPagina, $elm$core$Platform$Cmd$none);
@@ -6529,6 +6529,9 @@ var $author$project$Update$Archivos$update = F3(
 		}
 	});
 var $elm$browser$Browser$Navigation$load = _Browser_load;
+var $author$project$Update$Navegacion$prefijoRuta = function (ruta) {
+	return '/facturas-elm' + ruta;
+};
 var $elm$browser$Browser$Navigation$pushUrl = _Browser_pushUrl;
 var $elm$url$Url$addPort = F2(
 	function (maybePort, starter) {
@@ -6630,15 +6633,24 @@ var $author$project$Update$Navegacion$update = F2(
 			case 'IrAInicio':
 				return _Utils_Tuple2(
 					model,
-					A2($elm$browser$Browser$Navigation$pushUrl, model.key, '/'));
+					A2(
+						$elm$browser$Browser$Navigation$pushUrl,
+						model.key,
+						$author$project$Update$Navegacion$prefijoRuta('/')));
 			case 'IrAGestionProductos':
 				return _Utils_Tuple2(
 					model,
-					A2($elm$browser$Browser$Navigation$pushUrl, model.key, '/productos'));
+					A2(
+						$elm$browser$Browser$Navigation$pushUrl,
+						model.key,
+						$author$project$Update$Navegacion$prefijoRuta('/productos')));
 			case 'IrAListadoPedidos':
 				return _Utils_Tuple2(
 					model,
-					A2($elm$browser$Browser$Navigation$pushUrl, model.key, '/pedidos'));
+					A2(
+						$elm$browser$Browser$Navigation$pushUrl,
+						model.key,
+						$author$project$Update$Navegacion$prefijoRuta('/pedidos')));
 			default:
 				var id = msg.a;
 				return _Utils_Tuple2(
@@ -6646,7 +6658,8 @@ var $author$project$Update$Navegacion$update = F2(
 					A2(
 						$elm$browser$Browser$Navigation$pushUrl,
 						model.key,
-						'/pedidos/' + $elm$core$String$fromInt(id)));
+						$author$project$Update$Navegacion$prefijoRuta(
+							'/pedidos/' + $elm$core$String$fromInt(id))));
 		}
 	});
 var $author$project$Types$ConfirmandoEliminarItem = function (a) {
