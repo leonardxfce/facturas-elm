@@ -20,6 +20,7 @@
   "devDependencies": {
     "@types/node": "^25.6.0",
     "@typescript/native-preview": "^7.0.0-dev.20260420.1",
+    "elm": "^0.19.1-6",
     "elm-format": "^0.8.8",
     "elm-review": "^2.13.5",
     "elm-test": "^0.19.1-revision17",
