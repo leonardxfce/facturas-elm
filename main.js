@@ -6204,10 +6204,14 @@ var $elm$core$Maybe$withDefault = F2(
 		}
 	});
 var $author$project$Main$urlToPage = function (url) {
+	var pathLimpio = A2($elm$core$String$startsWith, '/facturas-elm/', url.path) ? A2($elm$core$String$dropLeft, 13, url.path) : url.path;
+	var urlLimpia = _Utils_update(
+		url,
+		{path: pathLimpio});
 	return A2(
 		$elm$core$Maybe$withDefault,
 		$author$project$Types$Inicio,
-		A2($elm$url$Url$Parser$parse, $author$project$Main$routeParser, url));
+		A2($elm$url$Url$Parser$parse, $author$project$Main$routeParser, urlLimpia));
 };
 var $author$project$Main$init = F3(
 	function (flags, url, key) {
