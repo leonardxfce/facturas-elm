@@ -1,82 +1,91 @@
 module Update.Pedidos exposing (update)
 
-import Json.Encode as Encode
-import Messages exposing (Msg(..))
-import Persistence exposing (encodeModel)
+import Browser.Navigation as Nav
+import Messages exposing (Msg, PedidoMsg(..))
 import Types exposing (Estado(..), Model)
+import Update.Pedidos.Items as UpdateItems
 
 
-update : Msg -> Model -> (Encode.Value -> Cmd msg) -> ( Model, Cmd msg )
-update msg model saveStorage =
+update : PedidoMsg -> Model -> (Model -> Cmd Msg) -> ( Model, Cmd Msg )
+update msg model saveState =
     case msg of
         AgregarPedido ->
             let
                 nuevoPedido =
-                    { id = model.nextPedidoId, items = [], estado = Borrador }
+                    { id = model.nextPedidoId
+                    , items = []
+                    , estado = Borrador
+                    , fechaEntrega = Nothing
+                    }
 
                 nuevoModel =
-                    { model | pedidos = model.pedidos ++ [ nuevoPedido ], nextPedidoId = model.nextPedidoId + 1 }
+                    { model
+                        | pedidos = model.pedidos ++ [ nuevoPedido ]
+                        , nextPedidoId = model.nextPedidoId + 1
+                    }
             in
-            ( nuevoModel, saveStorage (encodeModel nuevoModel) )
+            ( nuevoModel
+            , Cmd.batch
+                [ saveState nuevoModel
+                , Nav.pushUrl model.key ("/pedidos/" ++ String.fromInt nuevoPedido.id)
+                ]
+            )
 
         EliminarPedido id ->
             let
                 nuevoModel =
                     { model | pedidos = List.filter (\p -> p.id /= id) model.pedidos }
             in
-            ( nuevoModel, saveStorage (encodeModel nuevoModel) )
+            ( nuevoModel, saveState nuevoModel )
 
-        AgregarItemAPedido pedidoId productoId ->
-            let
-                producto =
-                    List.filter (\p -> p.id == productoId) model.catalogo
-                        |> List.head
-                        |> Maybe.withDefault { id = 0, nombre = "Desconocido", precio = 0.0 }
+        GuardarPedido ->
+            ( model, Nav.pushUrl model.key "/pedidos" )
 
-                actualizarPedido p =
-                    if p.id == pedidoId then
-                        { p | items = p.items ++ [ { productoId = productoId, nombreSnapshot = producto.nombre, precioSnapshot = producto.precio, cantidad = 1 } ] }
+        CancelarEdicionPedido ->
+            ( model, Nav.pushUrl model.key "/pedidos" )
 
-                    else
-                        p
+        EntregarPedido ->
+            case model.paginaActual of
+                Types.EditandoPedido id ->
+                    let
+                        nuevosPedidos =
+                            List.map
+                                (\p ->
+                                    if p.id == id then
+                                        { p
+                                            | estado = Entregado
+                                            , fechaEntrega = Just "2026-04-19 12:00:00"
+                                        }
 
-                nuevoModel =
-                    { model | pedidos = List.map actualizarPedido model.pedidos }
-            in
-            ( nuevoModel, saveStorage (encodeModel nuevoModel) )
+                                    else
+                                        p
+                                )
+                                model.pedidos
 
-        CambiarCantidadItem pedidoId productoId nuevaCantidadStr ->
-            let
-                nuevaCantidad =
-                    String.toInt nuevaCantidadStr |> Maybe.withDefault 1
+                        nuevoModel =
+                            { model | pedidos = nuevosPedidos }
+                    in
+                    ( nuevoModel
+                    , Cmd.batch
+                        [ saveState nuevoModel
+                        , Nav.pushUrl model.key "/pedidos"
+                        ]
+                    )
 
-                actualizarPedido p =
-                    if p.id == pedidoId then
-                        let
-                            nuevosItems =
-                                if nuevaCantidad < 1 then
-                                    p.items
+                _ ->
+                    ( model, Cmd.none )
 
-                                else
-                                    List.map
-                                        (\i ->
-                                            if i.productoId == productoId then
-                                                { i | cantidad = nuevaCantidad }
+        AgregarItemAPedido _ ->
+            UpdateItems.updateItems msg model saveState
 
-                                            else
-                                                i
-                                        )
-                                        p.items
-                        in
-                        { p | items = nuevosItems }
+        CambiarCantidadItem _ _ ->
+            UpdateItems.updateItems msg model saveState
 
-                    else
-                        p
+        PedirEliminarItem _ ->
+            UpdateItems.updateItems msg model saveState
 
-                nuevoModel =
-                    { model | pedidos = List.map actualizarPedido model.pedidos }
-            in
-            ( nuevoModel, saveStorage (encodeModel nuevoModel) )
+        CancelarEliminarItem ->
+            UpdateItems.updateItems msg model saveState
 
-        _ ->
-            ( model, Cmd.none )
+        ConfirmarEliminarItem ->
+            UpdateItems.updateItems msg model saveState

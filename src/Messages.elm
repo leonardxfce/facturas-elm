@@ -1,13 +1,27 @@
-module Messages exposing (Msg(..))
+module Messages exposing (ArchivoMsg(..), Msg(..), NavegacionMsg(..), PedidoMsg(..), ProductoMsg(..))
 
 import Browser
 import Url exposing (Url)
 
 
 type Msg
+    = NavMsg NavegacionMsg
+    | ProdMsg ProductoMsg
+    | PedMsg PedidoMsg
+    | ArchivoMsg ArchivoMsg
+
+
+type NavegacionMsg
     = LinkClicked Browser.UrlRequest
     | UrlChanged Url
-    | InputNombreProducto String
+    | IrAInicio
+    | IrAGestionProductos
+    | IrAListadoPedidos
+    | IrAEditarPedido Int
+
+
+type ProductoMsg
+    = InputNombreProducto String
     | InputPrecioProducto String
     | InputBusqueda String
     | AgregarProducto
@@ -16,18 +30,23 @@ type Msg
     | ConfirmarEliminarProducto
     | CancelarEliminarProducto
     | EditarProducto Int
-    | AgregarPedido
+
+
+type PedidoMsg
+    = AgregarPedido
     | EliminarPedido Int
-    | AgregarItemAPedido Int Int
-    | CambiarCantidadItem Int Int String
-    | PedirEliminarItem Int Int
+    | AgregarItemAPedido Int
+    | CambiarCantidadItem Int String
+    | PedirEliminarItem Int
     | ConfirmarEliminarItem
     | CancelarEliminarItem
-    | IrAInicio
-    | IrAGestionProductos
-    | IrAListadoPedidos
-    | IrAEditarPedido Int
-    | ExportarAPDF
+    | GuardarPedido
+    | EntregarPedido
+    | CancelarEdicionPedido
+
+
+type ArchivoMsg
+    = ExportarAPDF
     | ExportarProductosCSV
     | ExportarPedidosCSV
     | CargarProductosCSV

@@ -8,7 +8,7 @@
     "serve": "bun x live-server . --port=8080 --no-browser --entry-file=index.html",
     "test": "echo \"Error: no test specified\" && exit 1",
     "format": "bun x elm-format . --yes",
-    "lint": "bun x elm-review"
+    "lint": "bun x elm-review  --fix-all-without-prompt"
   },
   "keywords": [],
   "author": "",
@@ -17,6 +17,7 @@
   "devDependencies": {
     "elm-format": "^0.8.8",
     "elm-review": "^2.13.5",
+    "elm-test": "^0.19.1-revision17",
     "elm-watch": "^1.2.6",
     "live-server": "^1.2.2"
   },

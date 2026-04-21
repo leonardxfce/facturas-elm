@@ -1,21 +1,27 @@
 module View.Pedidos exposing (viewEditarPedido, viewListadoPedidos)
 
-import Html exposing (Html, article, button, div, h1, header, input, section, table, tbody, td, text, th, thead, tr)
-import Html.Attributes exposing (attribute, class, id, name, placeholder, type_, value)
+import Html exposing (Html, article, button, div, h1, header, input, section, table, tbody, text, th, thead, tr)
+import Html.Attributes exposing (attribute, class, id, name, placeholder, value)
 import Html.Events exposing (onClick, onInput)
 import Messages exposing (..)
 import Types exposing (..)
+import View.Pedidos.Actions as PedidosActions
+import View.Pedidos.Components as PedidosComponents
+import View.Pedidos.Header as PedidosHeader
+import View.Pedidos.Modal as PedidosModal
+import View.Pedidos.ProductList as ProductList
+import View.Pedidos.Table as PedidosTable
 
 
 viewListadoPedidos : Model -> Html Msg
 viewListadoPedidos model =
     article []
         [ header []
-            [ button [ class "outline", onClick IrAInicio, attribute "aria-label" "Volver" ] [ text "⬅️" ]
+            [ button [ class "outline", onClick (NavMsg IrAInicio), attribute "aria-label" "Volver" ] [ text "⬅️" ]
             , h1 [] [ text "Gestión de Pedidos" ]
             ]
         , section []
-            [ button [ onClick AgregarPedido ] [ text "➕ Nuevo Pedido" ]
+            [ button [ onClick (PedMsg AgregarPedido) ] [ text "➕ Nuevo Pedido" ]
             , section [ class "overflow-auto" ]
                 [ table [ class "striped" ]
                     [ thead []
@@ -25,51 +31,29 @@ viewListadoPedidos model =
                             , th [] [ text "Acciones" ]
                             ]
                         ]
-                    , tbody [] (List.map viewResumenPedido model.pedidos)
+                    , tbody [] (List.map PedidosComponents.viewResumenPedido model.pedidos)
                     ]
                 ]
-            ]
-        ]
-
-
-viewResumenPedido : Pedido -> Html Msg
-viewResumenPedido pedido =
-    tr []
-        [ td [] [ text ("#" ++ String.fromInt pedido.id) ]
-        , td [] [ text (estadoToString pedido.estado) ]
-        , td []
-            [ button [ class "outline", onClick (IrAEditarPedido pedido.id), attribute "aria-label" "Editar" ] [ text "✏️" ]
-            , button [ class "outline secondary", onClick (EliminarPedido pedido.id), attribute "aria-label" "Eliminar" ] [ text "🗑️" ]
             ]
         ]
 
 
 viewEditarPedido : Model -> Pedido -> Html Msg
 viewEditarPedido model pedido =
+    let
+        esSoloLectura =
+            pedido.estado == Entregado
+    in
     article []
-        [ header []
-            [ button [ class "outline", onClick IrAInicio, attribute "aria-label" "Volver" ] [ text "⬅️" ]
-            , button [ class "outline contrast", onClick ExportarAPDF, attribute "aria-label" "Exportar a PDF" ] [ text "📄" ]
-            , h1 [] [ text ("Pedido #" ++ String.fromInt pedido.id) ]
-            ]
+        [ PedidosHeader.viewHeader pedido
         , section [ class "overflow-auto" ]
-            [ table [ class "striped" ]
-                [ thead []
-                    [ tr []
-                        [ th [] [ text "Producto" ]
-                        , th [] [ text "Cantidad" ]
-                        , th [] [ text "Precio Unit." ]
-                        , th [] [ text "Subtotal" ]
-                        , th [] [ text "Acciones" ]
-                        ]
-                    ]
-                , tbody [] (List.map (viewItem model.catalogo pedido.id) pedido.items)
-                ]
+            [ PedidosTable.viewTablaItems esSoloLectura pedido.items
             ]
-        , viewModalConfirmacion model
-        , if pedido.estado == Borrador then
+        , PedidosActions.viewActions pedido
+        , PedidosModal.viewModalConfirmacion model
+        , if not esSoloLectura then
             section []
-                [ input [ id "busqueda-producto", name "busqueda", placeholder "Buscar producto...", value model.busquedaProducto, onInput InputBusqueda ] []
+                [ input [ id "busqueda-producto", name "busqueda", placeholder "Buscar producto para agregar...", value model.busquedaProducto, onInput (ProdMsg << InputBusqueda) ] []
                 , if String.isEmpty model.busquedaProducto then
                     div [] []
 
@@ -86,7 +70,7 @@ viewEditarPedido model pedido =
                             , tbody []
                                 (model.catalogo
                                     |> List.filter (\p -> String.contains (String.toLower model.busquedaProducto) (String.toLower p.nombre))
-                                    |> List.map (viewAgregarProductoAPedido pedido.id)
+                                    |> List.map ProductList.viewAgregarProductoAPedido
                                 )
                             ]
                         ]
@@ -95,47 +79,3 @@ viewEditarPedido model pedido =
           else
             div [] []
         ]
-
-
-viewAgregarProductoAPedido : Int -> Producto -> Html Msg
-viewAgregarProductoAPedido pedidoId producto =
-    tr []
-        [ td [] [ text producto.nombre ]
-        , td [] [ text ("$" ++ String.fromFloat producto.precio) ]
-        , td []
-            [ button [ class "outline", onClick (AgregarItemAPedido pedidoId producto.id) ]
-                [ text "➕" ]
-            ]
-        ]
-
-
-viewItem : List Producto -> Int -> Item -> Html Msg
-viewItem catalogo pedidoId item =
-    tr []
-        [ td [] [ text item.nombreSnapshot ]
-        , td [] [ input [ type_ "number", value (String.fromInt item.cantidad), onInput (CambiarCantidadItem pedidoId item.productoId), attribute "min" "1" ] [] ]
-        , td [] [ text ("$" ++ String.fromFloat item.precioSnapshot) ]
-        , td [] [ text ("$" ++ String.fromFloat (item.precioSnapshot * toFloat item.cantidad)) ]
-        , td []
-            [ button [ class "outline secondary", onClick (PedirEliminarItem pedidoId item.productoId), attribute "aria-label" "Eliminar" ] [ text "🗑️" ]
-            ]
-        ]
-
-
-viewModalConfirmacion : Model -> Html Msg
-viewModalConfirmacion model =
-    case model.confirmarEliminacionItem of
-        Just _ ->
-            div [ class "modal-overlay" ]
-                [ article []
-                    [ header [] [ text "Confirmar eliminación" ]
-                    , text "¿Estás seguro de que deseas eliminar este producto del pedido?"
-                    , div [ class "modal-actions" ]
-                        [ button [ class "secondary", onClick CancelarEliminarItem ] [ text "Cancelar" ]
-                        , button [ onClick ConfirmarEliminarItem ] [ text "Eliminar" ]
-                        ]
-                    ]
-                ]
-
-        Nothing ->
-            div [] []

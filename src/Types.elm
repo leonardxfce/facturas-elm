@@ -1,4 +1,4 @@
-module Types exposing (Estado(..), Item, Model, Pagina(..), Pedido, Producto, estadoToString, initModel)
+module Types exposing (Estado(..), InterfazEstado(..), Item, Model, Pagina(..), Pedido, Producto, estadoToString, initModel)
 
 import Browser.Navigation as Nav
 import Url exposing (Url)
@@ -16,6 +16,13 @@ type Pagina
     | EditandoPedido Int
 
 
+type InterfazEstado
+    = Normal
+    | EditandoProducto Int
+    | ConfirmandoEliminarItem { pedidoId : Int, productoId : Int }
+    | ConfirmandoEliminarProducto Int
+
+
 type alias Producto =
     { id : Int
     , nombre : String
@@ -23,11 +30,22 @@ type alias Producto =
     }
 
 
+type alias ProductoSnapshot =
+    { nombre : String
+    , precio : Float
+    }
+
+
 type alias Item =
     { productoId : Int
-    , nombreSnapshot : String
-    , precioSnapshot : Float
+    , snapshot : ProductoSnapshot
     , cantidad : Int
+    }
+
+
+type alias FormularioProducto =
+    { nombre : String
+    , precio : String
     }
 
 
@@ -35,6 +53,7 @@ type alias Pedido =
     { id : Int
     , items : List Item
     , estado : Estado
+    , fechaEntrega : Maybe String
     }
 
 
@@ -45,12 +64,9 @@ type alias Model =
     , pedidos : List Pedido
     , nextProductoId : Int
     , nextPedidoId : Int
-    , nuevoProductoNombre : String
-    , nuevoProductoPrecio : String
+    , nuevoProducto : FormularioProducto
     , busquedaProducto : String
-    , productoEditando : Maybe Int
-    , confirmarEliminacionItem : Maybe { pedidoId : Int, productoId : Int }
-    , confirmarEliminacionProducto : Maybe Int
+    , interfaz : InterfazEstado
     , paginaActual : Pagina
     }
 
@@ -63,12 +79,9 @@ initModel key url =
     , pedidos = []
     , nextProductoId = 1
     , nextPedidoId = 1
-    , nuevoProductoNombre = ""
-    , nuevoProductoPrecio = ""
+    , nuevoProducto = { nombre = "", precio = "" }
     , busquedaProducto = ""
-    , productoEditando = Nothing
-    , confirmarEliminacionItem = Nothing
-    , confirmarEliminacionProducto = Nothing
+    , interfaz = Normal
     , paginaActual = Inicio
     }
 

@@ -4,7 +4,7 @@ import Browser
 import Browser.Navigation as Nav
 import Json.Decode as Decode
 import Json.Encode as Encode
-import Messages exposing (Msg(..))
+import Messages exposing (ArchivoMsg(..), Msg(..), NavegacionMsg(..))
 import Persistence exposing (decodeModel)
 import Ports exposing (fileContentReceived)
 import Types exposing (Model, Pagina(..), initModel)
@@ -43,9 +43,9 @@ main =
         { init = init
         , view = \model -> { title = "Sistema de Pedidos", body = [ view model ] }
         , update = update
-        , subscriptions = \_ -> fileContentReceived ContenidoCSVRecibido
-        , onUrlRequest = LinkClicked
-        , onUrlChange = UrlChanged
+        , subscriptions = \_ -> fileContentReceived (ArchivoMsg << ContenidoCSVRecibido)
+        , onUrlRequest = NavMsg << LinkClicked
+        , onUrlChange = NavMsg << UrlChanged
         }
 
 
@@ -67,7 +67,24 @@ init flags url key =
                     baseModel
 
         -- Sincronizar página actual con la URL inicial
-        finalModel =
-            { model | paginaActual = urlToPage url }
+        pagina =
+            urlToPage url
+
+        modelConPagina =
+            { model | paginaActual = pagina }
+
+        -- Lógica de recuperación
+        ( finalModel, cmd ) =
+            case pagina of
+                EditandoPedido id ->
+                    case List.filter (\p -> p.id == id) modelConPagina.pedidos |> List.head of
+                        Just _ ->
+                            ( modelConPagina, Cmd.none )
+
+                        Nothing ->
+                            ( { modelConPagina | paginaActual = ListadoPedidos }, Nav.replaceUrl key "/pedidos" )
+
+                _ ->
+                    ( modelConPagina, Cmd.none )
     in
-    ( finalModel, Cmd.none )
+    ( finalModel, cmd )
