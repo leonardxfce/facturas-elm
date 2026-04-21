@@ -24,8 +24,10 @@ jobs:
         run: |
           bun run compile-elm
           bun run build
-          mkdir public
-          cp index.html style.css main.js public/
+          mkdir -p public
+          cp index.html public/
+          cp style.css public/
+          cp main.js public/
           cp -r dist public/
 
       - name: Deploy
