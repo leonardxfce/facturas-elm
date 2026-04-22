@@ -4,7 +4,9 @@ package-lock.json
 
 # Elm
 elm-stuff/
-main.js
+public/main.js
+public/app.js
+public/404.html
 debug.log
 review/
 
@@ -18,4 +20,3 @@ Thumbs.db
 
 # Bun
 bun.lock
-dist/

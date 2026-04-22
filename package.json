@@ -5,13 +5,13 @@
   "main": "index.js",
   "scripts": {
     "watch": "bun x elm-watch hot",
-    "serve": "bun x live-server . --port=8080 --no-browser --entry-file=index.html",
+    "serve": "bun x live-server public --port=8080 --no-browser --entry-file=index.html",
     "test": "echo \"Error: no test specified\" && exit 1",
     "format": "bun x elm-format . --yes",
     "lint": "bun x elm-review  --fix-all-without-prompt",
     "type-check": "tsc --noEmit",
-    "build": "esbuild app.ts --bundle --outfile=dist/app.js --minify",
-    "compile-elm": "elm make src/Main.elm --output=main.js"
+    "build": "esbuild src/app.ts --bundle --outfile=public/app.js --minify",
+    "compile-elm": "elm make src/Main.elm --output=public/main.js"
   },
   "keywords": [],
   "author": "",
