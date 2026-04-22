@@ -4395,7 +4395,90 @@ function _Url_percentDecode(string)
 	{
 		return $elm$core$Maybe$Nothing;
 	}
-}var $elm$core$List$cons = _List_cons;
+}
+
+
+var _Bitwise_and = F2(function(a, b)
+{
+	return a & b;
+});
+
+var _Bitwise_or = F2(function(a, b)
+{
+	return a | b;
+});
+
+var _Bitwise_xor = F2(function(a, b)
+{
+	return a ^ b;
+});
+
+function _Bitwise_complement(a)
+{
+	return ~a;
+};
+
+var _Bitwise_shiftLeftBy = F2(function(offset, a)
+{
+	return a << offset;
+});
+
+var _Bitwise_shiftRightBy = F2(function(offset, a)
+{
+	return a >> offset;
+});
+
+var _Bitwise_shiftRightZfBy = F2(function(offset, a)
+{
+	return a >>> offset;
+});
+
+
+
+function _Time_now(millisToPosix)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		callback(_Scheduler_succeed(millisToPosix(Date.now())));
+	});
+}
+
+var _Time_setInterval = F2(function(interval, task)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		var id = setInterval(function() { _Scheduler_rawSpawn(task); }, interval);
+		return function() { clearInterval(id); };
+	});
+});
+
+function _Time_here()
+{
+	return _Scheduler_binding(function(callback)
+	{
+		callback(_Scheduler_succeed(
+			A2($elm$time$Time$customZone, -(new Date().getTimezoneOffset()), _List_Nil)
+		));
+	});
+}
+
+
+function _Time_getZoneName()
+{
+	return _Scheduler_binding(function(callback)
+	{
+		try
+		{
+			var name = $elm$time$Time$Name(Intl.DateTimeFormat().resolvedOptions().timeZone);
+		}
+		catch (e)
+		{
+			var name = $elm$time$Time$Offset(new Date().getTimezoneOffset());
+		}
+		callback(_Scheduler_succeed(name));
+	});
+}
+var $elm$core$List$cons = _List_cons;
 var $elm$core$Elm$JsArray$foldr = _JsArray_foldr;
 var $elm$core$Array$foldr = F3(
 	function (func, baseCase, _v0) {
@@ -5206,7 +5289,6 @@ var $elm$core$Basics$composeL = F3(
 	});
 var $elm$json$Json$Decode$string = _Json_decodeString;
 var $author$project$Ports$fileContentReceived = _Platform_incomingPort('fileContentReceived', $elm$json$Json$Decode$string);
-var $author$project$Types$ListadoPedidos = {$: 'ListadoPedidos'};
 var $author$project$Types$Borrador = {$: 'Borrador'};
 var $author$project$Types$Pedido = F4(
 	function (id, items, estado, fechaEntrega) {
@@ -5217,8 +5299,11 @@ var $author$project$Types$Item = F3(
 	function (productoId, snapshot, cantidad) {
 		return {cantidad: cantidad, productoId: productoId, snapshot: snapshot};
 	});
+var $author$project$Types$ProductoSnapshot = F2(
+	function (nombre, precioCents) {
+		return {nombre: nombre, precioCents: precioCents};
+	});
 var $elm$json$Json$Decode$field = _Json_decodeField;
-var $elm$json$Json$Decode$float = _Json_decodeFloat;
 var $elm$json$Json$Decode$int = _Json_decodeInt;
 var $elm$json$Json$Decode$map3 = _Json_map3;
 var $elm$json$Json$Decode$oneOf = _Json_oneOf;
@@ -5231,22 +5316,14 @@ var $author$project$Persistence$decodeItem = A4(
 		'snapshot',
 		A3(
 			$elm$json$Json$Decode$map2,
-			F2(
-				function (n, p) {
-					return {nombre: n, precio: p};
-				}),
+			$author$project$Types$ProductoSnapshot,
 			$elm$json$Json$Decode$oneOf(
 				_List_fromArray(
 					[
 						A2($elm$json$Json$Decode$field, 'nombre', $elm$json$Json$Decode$string),
 						$elm$json$Json$Decode$succeed('Producto Histórico')
 					])),
-			$elm$json$Json$Decode$oneOf(
-				_List_fromArray(
-					[
-						A2($elm$json$Json$Decode$field, 'precio', $elm$json$Json$Decode$float),
-						$elm$json$Json$Decode$succeed(0.0)
-					])))),
+			A2($elm$json$Json$Decode$field, 'precioCents', $elm$json$Json$Decode$int))),
 	A2($elm$json$Json$Decode$field, 'cantidad', $elm$json$Json$Decode$int));
 var $elm$json$Json$Decode$list = _Json_decodeList;
 var $elm$json$Json$Decode$map4 = _Json_map4;
@@ -5295,8 +5372,8 @@ var $author$project$Persistence$decodePedido = A5(
 	$elm$json$Json$Decode$maybe(
 		A2($elm$json$Json$Decode$field, 'fechaEntrega', $elm$json$Json$Decode$string)));
 var $author$project$Types$Producto = F3(
-	function (id, nombre, precio) {
-		return {id: id, nombre: nombre, precio: precio};
+	function (id, nombre, precioCents) {
+		return {id: id, nombre: nombre, precioCents: precioCents};
 	});
 var $author$project$Persistence$decodeProducto = A4(
 	$elm$json$Json$Decode$map3,
@@ -5308,12 +5385,7 @@ var $author$project$Persistence$decodeProducto = A4(
 				A2($elm$json$Json$Decode$field, 'nombre', $elm$json$Json$Decode$string),
 				$elm$json$Json$Decode$succeed('Producto sin nombre')
 			])),
-	$elm$json$Json$Decode$oneOf(
-		_List_fromArray(
-			[
-				A2($elm$json$Json$Decode$field, 'precio', $elm$json$Json$Decode$float),
-				$elm$json$Json$Decode$succeed(0.0)
-			])));
+	A2($elm$json$Json$Decode$field, 'precioCents', $elm$json$Json$Decode$int));
 var $author$project$Persistence$decodeDatosBase = A5(
 	$elm$json$Json$Decode$map4,
 	F4(
@@ -5356,46 +5428,13 @@ var $author$project$Persistence$decodeDatosBase = A5(
 			])));
 var $author$project$Persistence$decodeModel = $author$project$Persistence$decodeDatosBase;
 var $elm$json$Json$Decode$decodeValue = _Json_run;
-var $elm$core$List$filter = F2(
-	function (isGood, list) {
-		return A3(
-			$elm$core$List$foldr,
-			F2(
-				function (x, xs) {
-					return isGood(x) ? A2($elm$core$List$cons, x, xs) : xs;
-				}),
-			_List_Nil,
-			list);
+var $author$project$Types$InicioPage = {$: 'InicioPage'};
+var $author$project$Types$initModel = F3(
+	function (basePath, key, url) {
+		return {basePath: basePath, catalogo: _List_Nil, key: key, nextPedidoId: 1, nextProductoId: 1, page: $author$project$Types$InicioPage, pedidos: _List_Nil, url: url};
 	});
-var $elm$core$List$head = function (list) {
-	if (list.b) {
-		var x = list.a;
-		var xs = list.b;
-		return $elm$core$Maybe$Just(x);
-	} else {
-		return $elm$core$Maybe$Nothing;
-	}
-};
-var $author$project$Types$Inicio = {$: 'Inicio'};
-var $author$project$Types$Normal = {$: 'Normal'};
-var $author$project$Types$initModel = F2(
-	function (key, url) {
-		return {
-			busquedaProducto: '',
-			catalogo: _List_Nil,
-			interfaz: $author$project$Types$Normal,
-			key: key,
-			nextPedidoId: 1,
-			nextProductoId: 1,
-			nuevoProducto: {nombre: '', precio: ''},
-			paginaActual: $author$project$Types$Inicio,
-			pedidos: _List_Nil,
-			url: url
-		};
-	});
-var $elm$core$Platform$Cmd$batch = _Platform_batch;
-var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
-var $elm$browser$Browser$Navigation$replaceUrl = _Browser_replaceUrl;
+var $elm$json$Json$Encode$null = _Json_encodeNull;
+var $author$project$Routing$RouteInicio = {$: 'RouteInicio'};
 var $elm$url$Url$Parser$State = F5(
 	function (visited, unvisited, params, frag, value) {
 		return {frag: frag, params: params, unvisited: unvisited, value: value, visited: visited};
@@ -6030,10 +6069,11 @@ var $elm$url$Url$Parser$parse = F2(
 					url.fragment,
 					$elm$core$Basics$identity)));
 	});
-var $author$project$Types$EditandoPedido = function (a) {
-	return {$: 'EditandoPedido', a: a};
+var $author$project$Routing$RouteEditarPedido = function (a) {
+	return {$: 'RouteEditarPedido', a: a};
 };
-var $author$project$Types$GestionProductos = {$: 'GestionProductos'};
+var $author$project$Routing$RouteListadoPedidos = {$: 'RouteListadoPedidos'};
+var $author$project$Routing$RouteProductos = {$: 'RouteProductos'};
 var $elm$url$Url$Parser$Parser = function (a) {
 	return {$: 'Parser', a: a};
 };
@@ -6174,26 +6214,42 @@ var $elm$url$Url$Parser$top = $elm$url$Url$Parser$Parser(
 		return _List_fromArray(
 			[state]);
 	});
-var $author$project$Main$routeParser = $elm$url$Url$Parser$oneOf(
+var $author$project$Routing$parser = $elm$url$Url$Parser$oneOf(
 	_List_fromArray(
 		[
-			A2($elm$url$Url$Parser$map, $author$project$Types$Inicio, $elm$url$Url$Parser$top),
+			A2($elm$url$Url$Parser$map, $author$project$Routing$RouteInicio, $elm$url$Url$Parser$top),
 			A2(
 			$elm$url$Url$Parser$map,
-			$author$project$Types$GestionProductos,
+			$author$project$Routing$RouteProductos,
 			$elm$url$Url$Parser$s('productos')),
 			A2(
 			$elm$url$Url$Parser$map,
-			$author$project$Types$ListadoPedidos,
+			$author$project$Routing$RouteListadoPedidos,
 			$elm$url$Url$Parser$s('pedidos')),
 			A2(
 			$elm$url$Url$Parser$map,
-			$author$project$Types$EditandoPedido,
+			$author$project$Routing$RouteEditarPedido,
 			A2(
 				$elm$url$Url$Parser$slash,
 				$elm$url$Url$Parser$s('pedidos'),
 				$elm$url$Url$Parser$int))
 		]));
+var $author$project$Routing$stripBasePath = F2(
+	function (basePath, path) {
+		if ($elm$core$String$isEmpty(basePath)) {
+			return path;
+		} else {
+			if (A2($elm$core$String$startsWith, basePath, path)) {
+				var rest = A2(
+					$elm$core$String$dropLeft,
+					$elm$core$String$length(basePath),
+					path);
+				return $elm$core$String$isEmpty(rest) ? '/' : rest;
+			} else {
+				return path;
+			}
+		}
+	});
 var $elm$core$Maybe$withDefault = F2(
 	function (_default, maybe) {
 		if (maybe.$ === 'Just') {
@@ -6203,56 +6259,153 @@ var $elm$core$Maybe$withDefault = F2(
 			return _default;
 		}
 	});
-var $author$project$Main$urlToPage = function (url) {
-	return A2(
-		$elm$core$Maybe$withDefault,
-		$author$project$Types$Inicio,
-		A2($elm$url$Url$Parser$parse, $author$project$Main$routeParser, url));
+var $author$project$Routing$parseUrl = F2(
+	function (basePath, url) {
+		return A2(
+			$elm$core$Maybe$withDefault,
+			$author$project$Routing$RouteInicio,
+			A2(
+				$elm$url$Url$Parser$parse,
+				$author$project$Routing$parser,
+				_Utils_update(
+					url,
+					{
+						path: A2($author$project$Routing$stripBasePath, basePath, url.path)
+					})));
+	});
+var $author$project$Types$PedidoEditPage = function (a) {
+	return {$: 'PedidoEditPage', a: a};
 };
+var $author$project$Types$PedidosListPage = {$: 'PedidosListPage'};
+var $author$project$Types$ProductosPage = function (a) {
+	return {$: 'ProductosPage', a: a};
+};
+var $elm$core$List$any = F2(
+	function (isOkay, list) {
+		any:
+		while (true) {
+			if (!list.b) {
+				return false;
+			} else {
+				var x = list.a;
+				var xs = list.b;
+				if (isOkay(x)) {
+					return true;
+				} else {
+					var $temp$isOkay = isOkay,
+						$temp$list = xs;
+					isOkay = $temp$isOkay;
+					list = $temp$list;
+					continue any;
+				}
+			}
+		}
+	});
+var $author$project$Types$emptyProductosPage = {
+	confirmandoEliminar: $elm$core$Maybe$Nothing,
+	editandoId: $elm$core$Maybe$Nothing,
+	form: {nombre: '', precio: ''}
+};
+var $author$project$Types$initPedidoEditPage = function (id) {
+	return {busqueda: '', confirmandoEliminarItem: $elm$core$Maybe$Nothing, pedidoId: id};
+};
+var $elm$core$Platform$Cmd$batch = _Platform_batch;
+var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
+var $elm$browser$Browser$Navigation$replaceUrl = _Browser_replaceUrl;
+var $author$project$Routing$routeToUrl = F2(
+	function (basePath, route) {
+		var sub = function () {
+			switch (route.$) {
+				case 'RouteInicio':
+					return '/';
+				case 'RouteProductos':
+					return '/productos';
+				case 'RouteListadoPedidos':
+					return '/pedidos';
+				default:
+					var id = route.a;
+					return '/pedidos/' + $elm$core$String$fromInt(id);
+			}
+		}();
+		return $elm$core$String$isEmpty(basePath) ? sub : ((sub === '/') ? (basePath + '/') : _Utils_ap(basePath, sub));
+	});
+var $author$project$Routing$routeToPageState = F2(
+	function (route, model) {
+		switch (route.$) {
+			case 'RouteInicio':
+				return _Utils_Tuple2($author$project$Types$InicioPage, $elm$core$Platform$Cmd$none);
+			case 'RouteProductos':
+				return _Utils_Tuple2(
+					$author$project$Types$ProductosPage($author$project$Types$emptyProductosPage),
+					$elm$core$Platform$Cmd$none);
+			case 'RouteListadoPedidos':
+				return _Utils_Tuple2($author$project$Types$PedidosListPage, $elm$core$Platform$Cmd$none);
+			default:
+				var id = route.a;
+				return A2(
+					$elm$core$List$any,
+					function (p) {
+						return _Utils_eq(p.id, id);
+					},
+					model.pedidos) ? _Utils_Tuple2(
+					$author$project$Types$PedidoEditPage(
+						$author$project$Types$initPedidoEditPage(id)),
+					$elm$core$Platform$Cmd$none) : _Utils_Tuple2(
+					$author$project$Types$PedidosListPage,
+					A2(
+						$elm$browser$Browser$Navigation$replaceUrl,
+						model.key,
+						A2($author$project$Routing$routeToUrl, model.basePath, $author$project$Routing$RouteListadoPedidos)));
+		}
+	});
+var $elm$json$Json$Decode$value = _Json_decodeValue;
+var $elm$core$Result$withDefault = F2(
+	function (def, result) {
+		if (result.$ === 'Ok') {
+			var a = result.a;
+			return a;
+		} else {
+			return def;
+		}
+	});
 var $author$project$Main$init = F3(
 	function (flags, url, key) {
-		var pagina = $author$project$Main$urlToPage(url);
-		var decoded = A2($elm$json$Json$Decode$decodeValue, $author$project$Persistence$decodeModel, flags);
-		var baseModel = A2($author$project$Types$initModel, key, url);
-		var model = function () {
-			if (decoded.$ === 'Ok') {
-				var patcher = decoded.a;
-				return patcher(baseModel);
+		var storage = A2(
+			$elm$core$Result$withDefault,
+			$elm$json$Json$Encode$null,
+			A2(
+				$elm$json$Json$Decode$decodeValue,
+				A2($elm$json$Json$Decode$field, 'storage', $elm$json$Json$Decode$value),
+				flags));
+		var basePath = A2(
+			$elm$core$Result$withDefault,
+			'',
+			A2(
+				$elm$json$Json$Decode$decodeValue,
+				A2($elm$json$Json$Decode$field, 'basePath', $elm$json$Json$Decode$string),
+				flags));
+		var base = A3($author$project$Types$initModel, basePath, key, url);
+		var withData = function () {
+			var _v1 = A2($elm$json$Json$Decode$decodeValue, $author$project$Persistence$decodeModel, storage);
+			if (_v1.$ === 'Ok') {
+				var patcher = _v1.a;
+				return patcher(base);
 			} else {
-				return baseModel;
+				return base;
 			}
 		}();
-		var modelConPagina = _Utils_update(
-			model,
-			{paginaActual: pagina});
-		var _v0 = function () {
-			if (pagina.$ === 'EditandoPedido') {
-				var id = pagina.a;
-				var _v2 = $elm$core$List$head(
-					A2(
-						$elm$core$List$filter,
-						function (p) {
-							return _Utils_eq(p.id, id);
-						},
-						modelConPagina.pedidos));
-				if (_v2.$ === 'Just') {
-					return _Utils_Tuple2(modelConPagina, $elm$core$Platform$Cmd$none);
-				} else {
-					return _Utils_Tuple2(
-						_Utils_update(
-							modelConPagina,
-							{paginaActual: $author$project$Types$ListadoPedidos}),
-						A2($elm$browser$Browser$Navigation$replaceUrl, key, '/pedidos'));
-				}
-			} else {
-				return _Utils_Tuple2(modelConPagina, $elm$core$Platform$Cmd$none);
-			}
-		}();
-		var finalModel = _v0.a;
+		var _v0 = A2(
+			$author$project$Routing$routeToPageState,
+			A2($author$project$Routing$parseUrl, basePath, url),
+			withData);
+		var page = _v0.a;
 		var cmd = _v0.b;
-		return _Utils_Tuple2(finalModel, cmd);
+		return _Utils_Tuple2(
+			_Utils_update(
+				withData,
+				{page: page}),
+			cmd);
 	});
-var $elm$json$Json$Encode$float = _Json_wrap;
 var $elm$json$Json$Encode$int = _Json_wrap;
 var $elm$json$Json$Encode$object = function (pairs) {
 	return _Json_wrap(
@@ -6284,8 +6437,8 @@ var $author$project$Persistence$encodeItem = function (i) {
 							'nombre',
 							$elm$json$Json$Encode$string(i.snapshot.nombre)),
 							_Utils_Tuple2(
-							'precio',
-							$elm$json$Json$Encode$float(i.snapshot.precio))
+							'precioCents',
+							$elm$json$Json$Encode$int(i.snapshot.precioCents))
 						]))),
 				_Utils_Tuple2(
 				'cantidad',
@@ -6318,7 +6471,6 @@ var $elm$core$Maybe$map = F2(
 			return $elm$core$Maybe$Nothing;
 		}
 	});
-var $elm$json$Json$Encode$null = _Json_encodeNull;
 var $author$project$Persistence$encodePedido = function (p) {
 	return $elm$json$Json$Encode$object(
 		_List_fromArray(
@@ -6352,8 +6504,8 @@ var $author$project$Persistence$encodeProducto = function (p) {
 				'nombre',
 				$elm$json$Json$Encode$string(p.nombre)),
 				_Utils_Tuple2(
-				'precio',
-				$elm$json$Json$Encode$float(p.precio))
+				'precioCents',
+				$elm$json$Json$Encode$int(p.precioCents))
 			]));
 };
 var $author$project$Persistence$encodeDatosBase = function (model) {
@@ -6378,6 +6530,42 @@ var $author$project$Update$saveStorage = _Platform_outgoingPort('saveStorage', $
 var $author$project$Update$saveState = function (model) {
 	return $author$project$Update$saveStorage(
 		$author$project$Persistence$encodeDatosBase(model));
+};
+var $elm$core$String$cons = _String_cons;
+var $elm$core$String$fromChar = function (_char) {
+	return A2($elm$core$String$cons, _char, '');
+};
+var $elm$core$Bitwise$and = _Bitwise_and;
+var $elm$core$Bitwise$shiftRightBy = _Bitwise_shiftRightBy;
+var $elm$core$String$repeatHelp = F3(
+	function (n, chunk, result) {
+		return (n <= 0) ? result : A3(
+			$elm$core$String$repeatHelp,
+			n >> 1,
+			_Utils_ap(chunk, chunk),
+			(!(n & 1)) ? result : _Utils_ap(result, chunk));
+	});
+var $elm$core$String$repeat = F2(
+	function (n, chunk) {
+		return A3($elm$core$String$repeatHelp, n, chunk, '');
+	});
+var $elm$core$String$padLeft = F3(
+	function (n, _char, string) {
+		return _Utils_ap(
+			A2(
+				$elm$core$String$repeat,
+				n - $elm$core$String$length(string),
+				$elm$core$String$fromChar(_char)),
+			string);
+	});
+var $author$project$Money$centsToDecimalString = function (cents) {
+	var whole = (cents / 100) | 0;
+	var frac = cents % 100;
+	return $elm$core$String$fromInt(whole) + ('.' + A3(
+		$elm$core$String$padLeft,
+		2,
+		_Utils_chr('0'),
+		$elm$core$String$fromInt(frac)));
 };
 var $author$project$Ports$downloadFile = _Platform_outgoingPort(
 	'downloadFile',
@@ -6414,21 +6602,101 @@ var $elm$core$List$drop = F2(
 			}
 		}
 	});
-var $elm$core$String$fromFloat = _String_fromNumber;
+var $elm$core$String$replace = F3(
+	function (before, after, string) {
+		return A2(
+			$elm$core$String$join,
+			after,
+			A2($elm$core$String$split, before, string));
+	});
+var $author$project$Update$Archivos$escapeCsvField = function (s) {
+	var needsQuoting = A2($elm$core$String$contains, ',', s) || (A2($elm$core$String$contains, '\"', s) || (A2($elm$core$String$contains, '\n', s) || A2($elm$core$String$contains, '\u000D', s)));
+	return needsQuoting ? ('\"' + (A3($elm$core$String$replace, '\"', '\"\"', s) + '\"')) : s;
+};
 var $elm$core$String$lines = _String_lines;
-var $elm$core$Basics$neq = _Utils_notEqual;
+var $elm$core$Maybe$map2 = F3(
+	function (func, ma, mb) {
+		if (ma.$ === 'Nothing') {
+			return $elm$core$Maybe$Nothing;
+		} else {
+			var a = ma.a;
+			if (mb.$ === 'Nothing') {
+				return $elm$core$Maybe$Nothing;
+			} else {
+				var b = mb.a;
+				return $elm$core$Maybe$Just(
+					A2(func, a, b));
+			}
+		}
+	});
+var $elm$core$String$padRight = F3(
+	function (n, _char, string) {
+		return _Utils_ap(
+			string,
+			A2(
+				$elm$core$String$repeat,
+				n - $elm$core$String$length(string),
+				$elm$core$String$fromChar(_char)));
+	});
+var $elm$core$String$trim = _String_trim;
+var $author$project$Money$parseCents = function (raw) {
+	var s = $elm$core$String$trim(raw);
+	if (A2($elm$core$String$startsWith, '-', s)) {
+		return $elm$core$Maybe$Nothing;
+	} else {
+		var _v0 = A2($elm$core$String$split, '.', s);
+		_v0$2:
+		while (true) {
+			if (_v0.b) {
+				if (!_v0.b.b) {
+					var whole = _v0.a;
+					return A2(
+						$elm$core$Maybe$map,
+						function (w) {
+							return w * 100;
+						},
+						$elm$core$String$toInt(whole));
+				} else {
+					if (!_v0.b.b.b) {
+						var whole = _v0.a;
+						var _v1 = _v0.b;
+						var frac = _v1.a;
+						var w = $elm$core$String$toInt(whole);
+						var padded = A3(
+							$elm$core$String$padRight,
+							2,
+							_Utils_chr('0'),
+							A2($elm$core$String$left, 2, frac));
+						var f = $elm$core$String$toInt(padded);
+						return A3(
+							$elm$core$Maybe$map2,
+							F2(
+								function (ww, ff) {
+									return (ww * 100) + ff;
+								}),
+							w,
+							f);
+					} else {
+						break _v0$2;
+					}
+				}
+			} else {
+				break _v0$2;
+			}
+		}
+		return $elm$core$Maybe$Nothing;
+	}
+};
 var $author$project$Ports$selectFile = _Platform_outgoingPort(
 	'selectFile',
 	function ($) {
 		return $elm$json$Json$Encode$null;
 	});
-var $elm$core$String$toFloat = _String_toFloat;
 var $author$project$Ports$triggerPrint = _Platform_outgoingPort(
 	'triggerPrint',
 	function ($) {
 		return $elm$json$Json$Encode$null;
 	});
-var $elm$core$String$trim = _String_trim;
 var $author$project$Update$Archivos$update = F3(
 	function (saveState, msg, model) {
 		switch (msg.$) {
@@ -6437,21 +6705,17 @@ var $author$project$Update$Archivos$update = F3(
 					model,
 					$author$project$Ports$triggerPrint(_Utils_Tuple0));
 			case 'ExportarProductosCSV':
+				var row = function (p) {
+					return $author$project$Update$Archivos$escapeCsvField(p.nombre) + (',' + $author$project$Money$centsToDecimalString(p.precioCents));
+				};
+				var contenido = 'Nombre,Precio\n' + A2(
+					$elm$core$String$join,
+					'\n',
+					A2($elm$core$List$map, row, model.catalogo));
 				return _Utils_Tuple2(
 					model,
 					$author$project$Ports$downloadFile(
-						{
-							content: 'Nombre,Precio\n' + A2(
-								$elm$core$String$join,
-								'\n',
-								A2(
-									$elm$core$List$map,
-									function (p) {
-										return p.nombre + (',' + $elm$core$String$fromFloat(p.precio));
-									},
-									model.catalogo)),
-							name: 'productos.csv'
-						}));
+						{content: contenido, name: 'productos.csv'}));
 			case 'ExportarPedidosCSV':
 				var pedidoToCsvLines = function (pedido) {
 					return A2(
@@ -6460,7 +6724,18 @@ var $author$project$Update$Archivos$update = F3(
 						A2(
 							$elm$core$List$map,
 							function (item) {
-								return $elm$core$String$fromInt(pedido.id) + (',' + ($author$project$Types$estadoToString(pedido.estado) + (',' + (item.snapshot.nombre + (',' + ($elm$core$String$fromInt(item.cantidad) + (',' + ($elm$core$String$fromFloat(item.snapshot.precio) + (',' + $elm$core$String$fromFloat(item.snapshot.precio * item.cantidad))))))))));
+								return A2(
+									$elm$core$String$join,
+									',',
+									_List_fromArray(
+										[
+											$elm$core$String$fromInt(pedido.id),
+											$author$project$Types$estadoToString(pedido.estado),
+											$author$project$Update$Archivos$escapeCsvField(item.snapshot.nombre),
+											$elm$core$String$fromInt(item.cantidad),
+											$author$project$Money$centsToDecimalString(item.snapshot.precioCents),
+											$author$project$Money$centsToDecimalString(item.snapshot.precioCents * item.cantidad)
+										]));
 							},
 							pedido.items));
 				};
@@ -6482,25 +6757,44 @@ var $author$project$Update$Archivos$update = F3(
 			default:
 				var content = msg.a;
 				var procesarLinea = F2(
-					function (linea, _v4) {
-						var actualCatalogo = _v4.a;
-						var nextId = _v4.b;
-						var partes = A2($elm$core$String$split, ',', linea);
-						if ((partes.b && partes.b.b) && (!partes.b.b.b)) {
-							var nombre = partes.a;
-							var _v3 = partes.b;
+					function (linea, _v6) {
+						var actualCatalogo = _v6.a;
+						var nextId = _v6.b;
+						var _v2 = A2($elm$core$String$split, ',', linea);
+						if ((_v2.b && _v2.b.b) && (!_v2.b.b.b)) {
+							var nombreRaw = _v2.a;
+							var _v3 = _v2.b;
 							var precioStr = _v3.a;
-							var precio = A2(
-								$elm$core$Maybe$withDefault,
-								0.0,
-								$elm$core$String$toFloat(precioStr));
-							var nuevoProducto = {id: nextId, nombre: nombre, precio: precio};
-							return (($elm$core$String$trim(nombre) !== '') && (precio > 0)) ? _Utils_Tuple2(
-								_Utils_ap(
-									actualCatalogo,
-									_List_fromArray(
-										[nuevoProducto])),
-								nextId + 1) : _Utils_Tuple2(actualCatalogo, nextId);
+							var nombre = $elm$core$String$trim(nombreRaw);
+							var _v4 = _Utils_Tuple2(
+								nombre,
+								$author$project$Money$parseCents(precioStr));
+							_v4$0:
+							while (true) {
+								if (_v4.b.$ === 'Nothing') {
+									if (_v4.a === '') {
+										break _v4$0;
+									} else {
+										var _v5 = _v4.b;
+										return _Utils_Tuple2(actualCatalogo, nextId);
+									}
+								} else {
+									if (_v4.a === '') {
+										break _v4$0;
+									} else {
+										var cents = _v4.b.a;
+										return (cents <= 0) ? _Utils_Tuple2(actualCatalogo, nextId) : _Utils_Tuple2(
+											_Utils_ap(
+												actualCatalogo,
+												_List_fromArray(
+													[
+														{id: nextId, nombre: nombre, precioCents: cents}
+													])),
+											nextId + 1);
+									}
+								}
+							}
+							return _Utils_Tuple2(actualCatalogo, nextId);
 						} else {
 							return _Utils_Tuple2(actualCatalogo, nextId);
 						}
@@ -6516,12 +6810,12 @@ var $author$project$Update$Archivos$update = F3(
 					lineas);
 				var nuevoCatalogo = _v1.a;
 				var finalNextId = _v1.b;
-				var nuevoModel = _Utils_update(
+				var newModel = _Utils_update(
 					model,
 					{catalogo: nuevoCatalogo, nextProductoId: finalNextId});
 				return _Utils_Tuple2(
-					nuevoModel,
-					saveState(nuevoModel));
+					newModel,
+					saveState(newModel));
 		}
 	});
 var $elm$browser$Browser$Navigation$load = _Browser_load;
@@ -6570,32 +6864,6 @@ var $elm$url$Url$toString = function (url) {
 					_Utils_ap(http, url.host)),
 				url.path)));
 };
-var $author$project$Update$Navegacion$routeParser = $elm$url$Url$Parser$oneOf(
-	_List_fromArray(
-		[
-			A2($elm$url$Url$Parser$map, $author$project$Types$Inicio, $elm$url$Url$Parser$top),
-			A2(
-			$elm$url$Url$Parser$map,
-			$author$project$Types$GestionProductos,
-			$elm$url$Url$Parser$s('productos')),
-			A2(
-			$elm$url$Url$Parser$map,
-			$author$project$Types$ListadoPedidos,
-			$elm$url$Url$Parser$s('pedidos')),
-			A2(
-			$elm$url$Url$Parser$map,
-			$author$project$Types$EditandoPedido,
-			A2(
-				$elm$url$Url$Parser$slash,
-				$elm$url$Url$Parser$s('pedidos'),
-				$elm$url$Url$Parser$int))
-		]));
-var $author$project$Update$Navegacion$urlToPage = function (url) {
-	return A2(
-		$elm$core$Maybe$withDefault,
-		$author$project$Types$Inicio,
-		A2($elm$url$Url$Parser$parse, $author$project$Update$Navegacion$routeParser, url));
-};
 var $author$project$Update$Navegacion$update = F2(
 	function (msg, model) {
 		switch (msg.$) {
@@ -6617,24 +6885,38 @@ var $author$project$Update$Navegacion$update = F2(
 				}
 			case 'UrlChanged':
 				var url = msg.a;
-				var nuevaPagina = $author$project$Update$Navegacion$urlToPage(url);
+				var _v2 = A2(
+					$author$project$Routing$routeToPageState,
+					A2($author$project$Routing$parseUrl, model.basePath, url),
+					model);
+				var page = _v2.a;
+				var cmd = _v2.b;
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{busquedaProducto: '', paginaActual: nuevaPagina, url: url}),
-					$elm$core$Platform$Cmd$none);
+						{page: page, url: url}),
+					cmd);
 			case 'IrAInicio':
 				return _Utils_Tuple2(
 					model,
-					A2($elm$browser$Browser$Navigation$pushUrl, model.key, '/'));
+					A2(
+						$elm$browser$Browser$Navigation$pushUrl,
+						model.key,
+						A2($author$project$Routing$routeToUrl, model.basePath, $author$project$Routing$RouteInicio)));
 			case 'IrAGestionProductos':
 				return _Utils_Tuple2(
 					model,
-					A2($elm$browser$Browser$Navigation$pushUrl, model.key, '/productos'));
+					A2(
+						$elm$browser$Browser$Navigation$pushUrl,
+						model.key,
+						A2($author$project$Routing$routeToUrl, model.basePath, $author$project$Routing$RouteProductos)));
 			case 'IrAListadoPedidos':
 				return _Utils_Tuple2(
 					model,
-					A2($elm$browser$Browser$Navigation$pushUrl, model.key, '/pedidos'));
+					A2(
+						$elm$browser$Browser$Navigation$pushUrl,
+						model.key,
+						A2($author$project$Routing$routeToUrl, model.basePath, $author$project$Routing$RouteListadoPedidos)));
 			default:
 				var id = msg.a;
 				return _Utils_Tuple2(
@@ -6642,185 +6924,262 @@ var $author$project$Update$Navegacion$update = F2(
 					A2(
 						$elm$browser$Browser$Navigation$pushUrl,
 						model.key,
-						'/pedidos/' + $elm$core$String$fromInt(id)));
+						A2(
+							$author$project$Routing$routeToUrl,
+							model.basePath,
+							$author$project$Routing$RouteEditarPedido(id))));
 		}
 	});
-var $author$project$Types$ConfirmandoEliminarItem = function (a) {
-	return {$: 'ConfirmandoEliminarItem', a: a};
+var $author$project$Messages$EntregarPedidoConFecha = function (a) {
+	return {$: 'EntregarPedidoConFecha', a: a};
 };
-var $elm$core$List$any = F2(
-	function (isOkay, list) {
-		any:
+var $author$project$Messages$PedMsg = function (a) {
+	return {$: 'PedMsg', a: a};
+};
+var $elm$core$List$filter = F2(
+	function (isGood, list) {
+		return A3(
+			$elm$core$List$foldr,
+			F2(
+				function (x, xs) {
+					return isGood(x) ? A2($elm$core$List$cons, x, xs) : xs;
+				}),
+			_List_Nil,
+			list);
+	});
+var $author$project$Update$Pedidos$monthToInt = function (m) {
+	switch (m.$) {
+		case 'Jan':
+			return 1;
+		case 'Feb':
+			return 2;
+		case 'Mar':
+			return 3;
+		case 'Apr':
+			return 4;
+		case 'May':
+			return 5;
+		case 'Jun':
+			return 6;
+		case 'Jul':
+			return 7;
+		case 'Aug':
+			return 8;
+		case 'Sep':
+			return 9;
+		case 'Oct':
+			return 10;
+		case 'Nov':
+			return 11;
+		default:
+			return 12;
+	}
+};
+var $elm$time$Time$flooredDiv = F2(
+	function (numerator, denominator) {
+		return $elm$core$Basics$floor(numerator / denominator);
+	});
+var $elm$time$Time$posixToMillis = function (_v0) {
+	var millis = _v0.a;
+	return millis;
+};
+var $elm$time$Time$toAdjustedMinutesHelp = F3(
+	function (defaultOffset, posixMinutes, eras) {
+		toAdjustedMinutesHelp:
 		while (true) {
-			if (!list.b) {
-				return false;
+			if (!eras.b) {
+				return posixMinutes + defaultOffset;
 			} else {
-				var x = list.a;
-				var xs = list.b;
-				if (isOkay(x)) {
-					return true;
+				var era = eras.a;
+				var olderEras = eras.b;
+				if (_Utils_cmp(era.start, posixMinutes) < 0) {
+					return posixMinutes + era.offset;
 				} else {
-					var $temp$isOkay = isOkay,
-						$temp$list = xs;
-					isOkay = $temp$isOkay;
-					list = $temp$list;
-					continue any;
+					var $temp$defaultOffset = defaultOffset,
+						$temp$posixMinutes = posixMinutes,
+						$temp$eras = olderEras;
+					defaultOffset = $temp$defaultOffset;
+					posixMinutes = $temp$posixMinutes;
+					eras = $temp$eras;
+					continue toAdjustedMinutesHelp;
 				}
 			}
 		}
 	});
-var $author$project$Update$Pedidos$Items$updateItems = F3(
-	function (msg, model, saveState) {
-		switch (msg.$) {
-			case 'AgregarItemAPedido':
-				var productoId = msg.a;
-				var _v1 = model.paginaActual;
-				if (_v1.$ === 'EditandoPedido') {
-					var pedidoId = _v1.a;
-					var producto = A2(
-						$elm$core$Maybe$withDefault,
-						{id: 0, nombre: 'Desconocido', precio: 0.0},
-						$elm$core$List$head(
-							A2(
-								$elm$core$List$filter,
-								function (p) {
-									return _Utils_eq(p.id, productoId);
-								},
-								model.catalogo)));
-					var nuevosPedidos = A2(
-						$elm$core$List$map,
-						function (p) {
-							return _Utils_eq(p.id, pedidoId) ? (A2(
-								$elm$core$List$any,
-								function (i) {
-									return _Utils_eq(i.productoId, productoId);
-								},
-								p.items) ? p : _Utils_update(
-								p,
-								{
-									items: _Utils_ap(
-										p.items,
-										_List_fromArray(
-											[
-												{
-												cantidad: 1,
-												productoId: productoId,
-												snapshot: {nombre: producto.nombre, precio: producto.precio}
-											}
-											]))
-								})) : p;
-						},
-						model.pedidos);
-					var nuevoModel = _Utils_update(
-						model,
-						{pedidos: nuevosPedidos});
-					return _Utils_Tuple2(
-						nuevoModel,
-						saveState(nuevoModel));
-				} else {
-					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
-				}
-			case 'CambiarCantidadItem':
-				var productoId = msg.a;
-				var nuevaCantidadStr = msg.b;
-				var nuevaCantidad = A2(
-					$elm$core$Maybe$withDefault,
-					1,
-					$elm$core$String$toInt(nuevaCantidadStr));
-				var _v2 = model.paginaActual;
-				if (_v2.$ === 'EditandoPedido') {
-					var pedidoId = _v2.a;
-					var nuevosPedidos = A2(
-						$elm$core$List$map,
-						function (p) {
-							return _Utils_eq(p.id, pedidoId) ? _Utils_update(
-								p,
-								{
-									items: (nuevaCantidad < 1) ? p.items : A2(
-										$elm$core$List$map,
-										function (i) {
-											return _Utils_eq(i.productoId, productoId) ? _Utils_update(
-												i,
-												{cantidad: nuevaCantidad}) : i;
-										},
-										p.items)
-								}) : p;
-						},
-						model.pedidos);
-					var nuevoModel = _Utils_update(
-						model,
-						{pedidos: nuevosPedidos});
-					return _Utils_Tuple2(
-						nuevoModel,
-						saveState(nuevoModel));
-				} else {
-					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
-				}
-			case 'PedirEliminarItem':
-				var productoId = msg.a;
-				var _v3 = model.paginaActual;
-				if (_v3.$ === 'EditandoPedido') {
-					var pedidoId = _v3.a;
-					return _Utils_Tuple2(
-						_Utils_update(
-							model,
-							{
-								interfaz: $author$project$Types$ConfirmandoEliminarItem(
-									{pedidoId: pedidoId, productoId: productoId})
-							}),
-						$elm$core$Platform$Cmd$none);
-				} else {
-					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
-				}
-			case 'CancelarEliminarItem':
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{interfaz: $author$project$Types$Normal}),
-					$elm$core$Platform$Cmd$none);
-			case 'ConfirmarEliminarItem':
-				var _v4 = _Utils_Tuple2(model.paginaActual, model.interfaz);
-				if ((_v4.a.$ === 'EditandoPedido') && (_v4.b.$ === 'ConfirmandoEliminarItem')) {
-					var pedidoId = _v4.a.a;
-					var confirmacion = _v4.b.a;
-					var nuevosPedidos = A2(
-						$elm$core$List$map,
-						function (p) {
-							return _Utils_eq(p.id, pedidoId) ? _Utils_update(
-								p,
-								{
-									items: A2(
-										$elm$core$List$filter,
-										function (i) {
-											return !_Utils_eq(i.productoId, confirmacion.productoId);
-										},
-										p.items)
-								}) : p;
-						},
-						model.pedidos);
-					var nuevoModel = _Utils_update(
-						model,
-						{interfaz: $author$project$Types$Normal, pedidos: nuevosPedidos});
-					return _Utils_Tuple2(
-						nuevoModel,
-						saveState(nuevoModel));
-				} else {
-					return _Utils_Tuple2(
-						_Utils_update(
-							model,
-							{interfaz: $author$project$Types$Normal}),
-						$elm$core$Platform$Cmd$none);
-				}
+var $elm$time$Time$toAdjustedMinutes = F2(
+	function (_v0, time) {
+		var defaultOffset = _v0.a;
+		var eras = _v0.b;
+		return A3(
+			$elm$time$Time$toAdjustedMinutesHelp,
+			defaultOffset,
+			A2(
+				$elm$time$Time$flooredDiv,
+				$elm$time$Time$posixToMillis(time),
+				60000),
+			eras);
+	});
+var $elm$core$Basics$ge = _Utils_ge;
+var $elm$core$Basics$negate = function (n) {
+	return -n;
+};
+var $elm$time$Time$toCivil = function (minutes) {
+	var rawDay = A2($elm$time$Time$flooredDiv, minutes, 60 * 24) + 719468;
+	var era = (((rawDay >= 0) ? rawDay : (rawDay - 146096)) / 146097) | 0;
+	var dayOfEra = rawDay - (era * 146097);
+	var yearOfEra = ((((dayOfEra - ((dayOfEra / 1460) | 0)) + ((dayOfEra / 36524) | 0)) - ((dayOfEra / 146096) | 0)) / 365) | 0;
+	var dayOfYear = dayOfEra - (((365 * yearOfEra) + ((yearOfEra / 4) | 0)) - ((yearOfEra / 100) | 0));
+	var mp = (((5 * dayOfYear) + 2) / 153) | 0;
+	var month = mp + ((mp < 10) ? 3 : (-9));
+	var year = yearOfEra + (era * 400);
+	return {
+		day: (dayOfYear - ((((153 * mp) + 2) / 5) | 0)) + 1,
+		month: month,
+		year: year + ((month <= 2) ? 1 : 0)
+	};
+};
+var $elm$time$Time$toDay = F2(
+	function (zone, time) {
+		return $elm$time$Time$toCivil(
+			A2($elm$time$Time$toAdjustedMinutes, zone, time)).day;
+	});
+var $elm$core$Basics$modBy = _Basics_modBy;
+var $elm$time$Time$toHour = F2(
+	function (zone, time) {
+		return A2(
+			$elm$core$Basics$modBy,
+			24,
+			A2(
+				$elm$time$Time$flooredDiv,
+				A2($elm$time$Time$toAdjustedMinutes, zone, time),
+				60));
+	});
+var $elm$time$Time$toMinute = F2(
+	function (zone, time) {
+		return A2(
+			$elm$core$Basics$modBy,
+			60,
+			A2($elm$time$Time$toAdjustedMinutes, zone, time));
+	});
+var $elm$time$Time$Apr = {$: 'Apr'};
+var $elm$time$Time$Aug = {$: 'Aug'};
+var $elm$time$Time$Dec = {$: 'Dec'};
+var $elm$time$Time$Feb = {$: 'Feb'};
+var $elm$time$Time$Jan = {$: 'Jan'};
+var $elm$time$Time$Jul = {$: 'Jul'};
+var $elm$time$Time$Jun = {$: 'Jun'};
+var $elm$time$Time$Mar = {$: 'Mar'};
+var $elm$time$Time$May = {$: 'May'};
+var $elm$time$Time$Nov = {$: 'Nov'};
+var $elm$time$Time$Oct = {$: 'Oct'};
+var $elm$time$Time$Sep = {$: 'Sep'};
+var $elm$time$Time$toMonth = F2(
+	function (zone, time) {
+		var _v0 = $elm$time$Time$toCivil(
+			A2($elm$time$Time$toAdjustedMinutes, zone, time)).month;
+		switch (_v0) {
+			case 1:
+				return $elm$time$Time$Jan;
+			case 2:
+				return $elm$time$Time$Feb;
+			case 3:
+				return $elm$time$Time$Mar;
+			case 4:
+				return $elm$time$Time$Apr;
+			case 5:
+				return $elm$time$Time$May;
+			case 6:
+				return $elm$time$Time$Jun;
+			case 7:
+				return $elm$time$Time$Jul;
+			case 8:
+				return $elm$time$Time$Aug;
+			case 9:
+				return $elm$time$Time$Sep;
+			case 10:
+				return $elm$time$Time$Oct;
+			case 11:
+				return $elm$time$Time$Nov;
 			default:
-				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				return $elm$time$Time$Dec;
 		}
 	});
+var $elm$time$Time$toSecond = F2(
+	function (_v0, time) {
+		return A2(
+			$elm$core$Basics$modBy,
+			60,
+			A2(
+				$elm$time$Time$flooredDiv,
+				$elm$time$Time$posixToMillis(time),
+				1000));
+	});
+var $elm$time$Time$toYear = F2(
+	function (zone, time) {
+		return $elm$time$Time$toCivil(
+			A2($elm$time$Time$toAdjustedMinutes, zone, time)).year;
+	});
+var $author$project$Update$Pedidos$formatPosix = F2(
+	function (zone, posix) {
+		var y = $elm$core$String$fromInt(
+			A2($elm$time$Time$toYear, zone, posix));
+		var pad = function (n) {
+			return A3(
+				$elm$core$String$padLeft,
+				2,
+				_Utils_chr('0'),
+				$elm$core$String$fromInt(n));
+		};
+		var s = pad(
+			A2($elm$time$Time$toSecond, zone, posix));
+		var mo = pad(
+			$author$project$Update$Pedidos$monthToInt(
+				A2($elm$time$Time$toMonth, zone, posix)));
+		var mi = pad(
+			A2($elm$time$Time$toMinute, zone, posix));
+		var h = pad(
+			A2($elm$time$Time$toHour, zone, posix));
+		var d = pad(
+			A2($elm$time$Time$toDay, zone, posix));
+		return y + ('-' + (mo + ('-' + (d + (' ' + (h + (':' + (mi + (':' + s)))))))));
+	});
+var $author$project$Update$Pedidos$mapPedido = F3(
+	function (pedidoId, f, model) {
+		return _Utils_update(
+			model,
+			{
+				pedidos: A2(
+					$elm$core$List$map,
+					function (p) {
+						return _Utils_eq(p.id, pedidoId) ? f(p) : p;
+					},
+					model.pedidos)
+			});
+	});
+var $elm$core$Basics$neq = _Utils_notEqual;
+var $elm$time$Time$Name = function (a) {
+	return {$: 'Name', a: a};
+};
+var $elm$time$Time$Offset = function (a) {
+	return {$: 'Offset', a: a};
+};
+var $elm$time$Time$Zone = F2(
+	function (a, b) {
+		return {$: 'Zone', a: a, b: b};
+	});
+var $elm$time$Time$customZone = $elm$time$Time$Zone;
+var $elm$time$Time$Posix = function (a) {
+	return {$: 'Posix', a: a};
+};
+var $elm$time$Time$millisToPosix = $elm$time$Time$Posix;
+var $elm$time$Time$now = _Time_now($elm$time$Time$millisToPosix);
+var $elm$time$Time$utc = A2($elm$time$Time$Zone, 0, _List_Nil);
 var $author$project$Update$Pedidos$update = F3(
 	function (msg, model, saveState) {
 		switch (msg.$) {
 			case 'AgregarPedido':
 				var nuevoPedido = {estado: $author$project$Types$Borrador, fechaEntrega: $elm$core$Maybe$Nothing, id: model.nextPedidoId, items: _List_Nil};
-				var nuevoModel = _Utils_update(
+				var newModel = _Utils_update(
 					model,
 					{
 						nextPedidoId: model.nextPedidoId + 1,
@@ -6830,19 +7189,22 @@ var $author$project$Update$Pedidos$update = F3(
 								[nuevoPedido]))
 					});
 				return _Utils_Tuple2(
-					nuevoModel,
+					newModel,
 					$elm$core$Platform$Cmd$batch(
 						_List_fromArray(
 							[
-								saveState(nuevoModel),
+								saveState(newModel),
 								A2(
 								$elm$browser$Browser$Navigation$pushUrl,
 								model.key,
-								'/pedidos/' + $elm$core$String$fromInt(nuevoPedido.id))
+								A2(
+									$author$project$Routing$routeToUrl,
+									model.basePath,
+									$author$project$Routing$RouteEditarPedido(nuevoPedido.id)))
 							])));
 			case 'EliminarPedido':
 				var id = msg.a;
-				var nuevoModel = _Utils_update(
+				var newModel = _Utils_update(
 					model,
 					{
 						pedidos: A2(
@@ -6853,206 +7215,426 @@ var $author$project$Update$Pedidos$update = F3(
 							model.pedidos)
 					});
 				return _Utils_Tuple2(
-					nuevoModel,
-					saveState(nuevoModel));
+					newModel,
+					saveState(newModel));
 			case 'GuardarPedido':
 				return _Utils_Tuple2(
 					model,
-					A2($elm$browser$Browser$Navigation$pushUrl, model.key, '/pedidos'));
+					A2(
+						$elm$browser$Browser$Navigation$pushUrl,
+						model.key,
+						A2($author$project$Routing$routeToUrl, model.basePath, $author$project$Routing$RouteListadoPedidos)));
 			case 'CancelarEdicionPedido':
 				return _Utils_Tuple2(
 					model,
-					A2($elm$browser$Browser$Navigation$pushUrl, model.key, '/pedidos'));
-			case 'EntregarPedido':
-				var _v1 = model.paginaActual;
-				if (_v1.$ === 'EditandoPedido') {
-					var id = _v1.a;
-					var nuevosPedidos = A2(
-						$elm$core$List$map,
+					A2(
+						$elm$browser$Browser$Navigation$pushUrl,
+						model.key,
+						A2($author$project$Routing$routeToUrl, model.basePath, $author$project$Routing$RouteListadoPedidos)));
+			case 'IniciarEntregaPedido':
+				var _v1 = model.page;
+				if (_v1.$ === 'PedidoEditPage') {
+					return _Utils_Tuple2(
+						model,
+						A2(
+							$elm$core$Task$perform,
+							A2($elm$core$Basics$composeL, $author$project$Messages$PedMsg, $author$project$Messages$EntregarPedidoConFecha),
+							$elm$time$Time$now));
+				} else {
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				}
+			default:
+				var posix = msg.a;
+				var _v2 = model.page;
+				if (_v2.$ === 'PedidoEditPage') {
+					var data = _v2.a;
+					var fecha = A2($author$project$Update$Pedidos$formatPosix, $elm$time$Time$utc, posix);
+					var newModel = A3(
+						$author$project$Update$Pedidos$mapPedido,
+						data.pedidoId,
 						function (p) {
-							return _Utils_eq(p.id, id) ? _Utils_update(
+							return _Utils_update(
 								p,
 								{
 									estado: $author$project$Types$Entregado,
-									fechaEntrega: $elm$core$Maybe$Just('2026-04-19 12:00:00')
-								}) : p;
+									fechaEntrega: $elm$core$Maybe$Just(fecha)
+								});
 						},
-						model.pedidos);
-					var nuevoModel = _Utils_update(
-						model,
-						{pedidos: nuevosPedidos});
+						model);
 					return _Utils_Tuple2(
-						nuevoModel,
+						newModel,
 						$elm$core$Platform$Cmd$batch(
 							_List_fromArray(
 								[
-									saveState(nuevoModel),
-									A2($elm$browser$Browser$Navigation$pushUrl, model.key, '/pedidos')
+									saveState(newModel),
+									A2(
+									$elm$browser$Browser$Navigation$pushUrl,
+									model.key,
+									A2($author$project$Routing$routeToUrl, model.basePath, $author$project$Routing$RouteListadoPedidos))
 								])));
 				} else {
 					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 				}
-			case 'AgregarItemAPedido':
-				return A3($author$project$Update$Pedidos$Items$updateItems, msg, model, saveState);
-			case 'CambiarCantidadItem':
-				return A3($author$project$Update$Pedidos$Items$updateItems, msg, model, saveState);
-			case 'PedirEliminarItem':
-				return A3($author$project$Update$Pedidos$Items$updateItems, msg, model, saveState);
-			case 'CancelarEliminarItem':
-				return A3($author$project$Update$Pedidos$Items$updateItems, msg, model, saveState);
-			default:
-				return A3($author$project$Update$Pedidos$Items$updateItems, msg, model, saveState);
 		}
 	});
-var $author$project$Types$ConfirmandoEliminarProducto = function (a) {
-	return {$: 'ConfirmandoEliminarProducto', a: a};
+var $elm$core$List$head = function (list) {
+	if (list.b) {
+		var x = list.a;
+		var xs = list.b;
+		return $elm$core$Maybe$Just(x);
+	} else {
+		return $elm$core$Maybe$Nothing;
+	}
 };
-var $author$project$Types$EditandoProducto = function (a) {
-	return {$: 'EditandoProducto', a: a};
-};
-var $author$project$Messages$EliminarProducto = function (a) {
-	return {$: 'EliminarProducto', a: a};
-};
-var $author$project$Update$Productos$update = F2(
-	function (msg, model) {
-		update:
-		while (true) {
-			switch (msg.$) {
-				case 'InputNombreProducto':
-					var val = msg.a;
-					return _Utils_update(
+var $author$project$Update$Pedidos$Items$handle = F4(
+	function (msg, model, data, saveState) {
+		switch (msg.$) {
+			case 'InputBusqueda':
+				var val = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
 						model,
 						{
-							nuevoProducto: {nombre: val, precio: model.nuevoProducto.precio}
-						});
-				case 'InputPrecioProducto':
-					var val = msg.a;
-					return _Utils_update(
-						model,
-						{
-							nuevoProducto: {nombre: model.nuevoProducto.nombre, precio: val}
-						});
-				case 'InputBusqueda':
-					var val = msg.a;
-					return _Utils_update(
-						model,
-						{busquedaProducto: val});
-				case 'AgregarProducto':
-					var nuevoProducto = function () {
-						var _v3 = model.interfaz;
-						if (_v3.$ === 'EditandoProducto') {
-							var id = _v3.a;
-							return {
-								id: id,
-								nombre: model.nuevoProducto.nombre,
-								precio: A2(
-									$elm$core$Maybe$withDefault,
-									0.0,
-									$elm$core$String$toFloat(model.nuevoProducto.precio))
-							};
-						} else {
-							return {
-								id: model.nextProductoId,
-								nombre: model.nuevoProducto.nombre,
-								precio: A2(
-									$elm$core$Maybe$withDefault,
-									0.0,
-									$elm$core$String$toFloat(model.nuevoProducto.precio))
-							};
-						}
-					}();
-					var nuevoCatalogo = function () {
-						var _v2 = model.interfaz;
-						if (_v2.$ === 'EditandoProducto') {
-							var id = _v2.a;
-							return A2(
-								$elm$core$List$map,
-								function (p) {
-									return _Utils_eq(p.id, id) ? nuevoProducto : p;
-								},
-								model.catalogo);
-						} else {
-							return _Utils_ap(
-								model.catalogo,
-								_List_fromArray(
-									[nuevoProducto]));
-						}
-					}();
-					return _Utils_update(
-						model,
-						{
-							catalogo: nuevoCatalogo,
-							interfaz: $author$project$Types$Normal,
-							nextProductoId: function () {
-								var _v1 = model.interfaz;
-								if (_v1.$ === 'EditandoProducto') {
-									return model.nextProductoId;
-								} else {
-									return model.nextProductoId + 1;
-								}
-							}(),
-							nuevoProducto: {nombre: '', precio: ''}
-						});
-				case 'EliminarProducto':
-					var id = msg.a;
-					return _Utils_update(
-						model,
-						{
-							catalogo: A2(
-								$elm$core$List$filter,
-								function (p) {
-									return !_Utils_eq(p.id, id);
-								},
-								model.catalogo),
-							interfaz: $author$project$Types$Normal
-						});
-				case 'PedirEliminarProducto':
-					var id = msg.a;
-					return _Utils_update(
-						model,
-						{
-							interfaz: $author$project$Types$ConfirmandoEliminarProducto(id)
-						});
-				case 'CancelarEliminarProducto':
-					return _Utils_update(
-						model,
-						{interfaz: $author$project$Types$Normal});
-				case 'ConfirmarEliminarProducto':
-					var _v4 = model.interfaz;
-					if (_v4.$ === 'ConfirmandoEliminarProducto') {
-						var id = _v4.a;
-						var $temp$msg = $author$project$Messages$EliminarProducto(id),
-							$temp$model = model;
-						msg = $temp$msg;
-						model = $temp$model;
-						continue update;
-					} else {
-						return model;
-					}
-				default:
-					var id = msg.a;
-					var _v5 = $elm$core$List$head(
-						A2(
-							$elm$core$List$filter,
-							function (p) {
-								return _Utils_eq(p.id, id);
+							page: $author$project$Types$PedidoEditPage(
+								_Utils_update(
+									data,
+									{busqueda: val}))
+						}),
+					$elm$core$Platform$Cmd$none);
+			case 'AgregarItemAPedido':
+				var productoId = msg.a;
+				var _v1 = $elm$core$List$head(
+					A2(
+						$elm$core$List$filter,
+						function (p) {
+							return _Utils_eq(p.id, productoId);
+						},
+						model.catalogo));
+				if (_v1.$ === 'Just') {
+					var producto = _v1.a;
+					var addIfMissing = function (p) {
+						return A2(
+							$elm$core$List$any,
+							function (i) {
+								return _Utils_eq(i.productoId, productoId);
 							},
-							model.catalogo));
-					if (_v5.$ === 'Just') {
-						var p = _v5.a;
+							p.items) ? p : _Utils_update(
+							p,
+							{
+								items: _Utils_ap(
+									p.items,
+									_List_fromArray(
+										[
+											{
+											cantidad: 1,
+											productoId: productoId,
+											snapshot: {nombre: producto.nombre, precioCents: producto.precioCents}
+										}
+										]))
+							});
+					};
+					var newModel = A3($author$project$Update$Pedidos$mapPedido, data.pedidoId, addIfMissing, model);
+					return _Utils_Tuple2(
+						newModel,
+						saveState(newModel));
+				} else {
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				}
+			case 'CambiarCantidadItem':
+				var productoId = msg.a;
+				var nuevaCantidadStr = msg.b;
+				var nuevaCantidad = A2(
+					$elm$core$Maybe$withDefault,
+					1,
+					$elm$core$String$toInt(nuevaCantidadStr));
+				if (nuevaCantidad < 1) {
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				} else {
+					var changeQty = function (p) {
 						return _Utils_update(
+							p,
+							{
+								items: A2(
+									$elm$core$List$map,
+									function (i) {
+										return _Utils_eq(i.productoId, productoId) ? _Utils_update(
+											i,
+											{cantidad: nuevaCantidad}) : i;
+									},
+									p.items)
+							});
+					};
+					var newModel = A3($author$project$Update$Pedidos$mapPedido, data.pedidoId, changeQty, model);
+					return _Utils_Tuple2(
+						newModel,
+						saveState(newModel));
+				}
+			case 'PedirEliminarItem':
+				var productoId = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							page: $author$project$Types$PedidoEditPage(
+								_Utils_update(
+									data,
+									{
+										confirmandoEliminarItem: $elm$core$Maybe$Just(productoId)
+									}))
+						}),
+					$elm$core$Platform$Cmd$none);
+			case 'CancelarEliminarItem':
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							page: $author$project$Types$PedidoEditPage(
+								_Utils_update(
+									data,
+									{confirmandoEliminarItem: $elm$core$Maybe$Nothing}))
+						}),
+					$elm$core$Platform$Cmd$none);
+			default:
+				var _v2 = data.confirmandoEliminarItem;
+				if (_v2.$ === 'Just') {
+					var productoId = _v2.a;
+					var removeItem = function (p) {
+						return _Utils_update(
+							p,
+							{
+								items: A2(
+									$elm$core$List$filter,
+									function (i) {
+										return !_Utils_eq(i.productoId, productoId);
+									},
+									p.items)
+							});
+					};
+					var cleared = _Utils_update(
+						model,
+						{
+							page: $author$project$Types$PedidoEditPage(
+								_Utils_update(
+									data,
+									{confirmandoEliminarItem: $elm$core$Maybe$Nothing}))
+						});
+					var newModel = A3($author$project$Update$Pedidos$mapPedido, data.pedidoId, removeItem, cleared);
+					return _Utils_Tuple2(
+						newModel,
+						saveState(newModel));
+				} else {
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				}
+		}
+	});
+var $author$project$Update$Pedidos$Items$update = F3(
+	function (msg, model, saveState) {
+		var _v0 = model.page;
+		if (_v0.$ === 'PedidoEditPage') {
+			var data = _v0.a;
+			return A4($author$project$Update$Pedidos$Items$handle, msg, model, data, saveState);
+		} else {
+			return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+		}
+	});
+var $author$project$Update$Productos$resetForm = function (data) {
+	return _Utils_update(
+		data,
+		{
+			editandoId: $elm$core$Maybe$Nothing,
+			form: {nombre: '', precio: ''}
+		});
+};
+var $author$project$Update$Productos$setPage = F2(
+	function (model, data) {
+		return _Utils_update(
+			model,
+			{
+				page: $author$project$Types$ProductosPage(data)
+			});
+	});
+var $author$project$Update$Productos$validateForm = function (form) {
+	var nombre = $elm$core$String$trim(form.nombre);
+	if (nombre === '') {
+		return $elm$core$Maybe$Nothing;
+	} else {
+		var _v0 = $author$project$Money$parseCents(form.precio);
+		if (_v0.$ === 'Just') {
+			var cents = _v0.a;
+			return (cents > 0) ? $elm$core$Maybe$Just(
+				_Utils_Tuple2(nombre, cents)) : $elm$core$Maybe$Nothing;
+		} else {
+			return $elm$core$Maybe$Nothing;
+		}
+	}
+};
+var $author$project$Update$Productos$handle = F3(
+	function (msg, model, data) {
+		switch (msg.$) {
+			case 'InputNombreProducto':
+				var val = msg.a;
+				var form = data.form;
+				return _Utils_Tuple2(
+					A2(
+						$author$project$Update$Productos$setPage,
+						model,
+						_Utils_update(
+							data,
+							{
+								form: _Utils_update(
+									form,
+									{nombre: val})
+							})),
+					false);
+			case 'InputPrecioProducto':
+				var val = msg.a;
+				var form = data.form;
+				return _Utils_Tuple2(
+					A2(
+						$author$project$Update$Productos$setPage,
+						model,
+						_Utils_update(
+							data,
+							{
+								form: _Utils_update(
+									form,
+									{precio: val})
+							})),
+					false);
+			case 'CrearProducto':
+				var _v1 = $author$project$Update$Productos$validateForm(data.form);
+				if (_v1.$ === 'Just') {
+					var _v2 = _v1.a;
+					var nombre = _v2.a;
+					var cents = _v2.b;
+					var nuevo = {id: model.nextProductoId, nombre: nombre, precioCents: cents};
+					return _Utils_Tuple2(
+						_Utils_update(
 							model,
 							{
-								interfaz: $author$project$Types$EditandoProducto(id),
-								nuevoProducto: {
-									nombre: p.nombre,
-									precio: $elm$core$String$fromFloat(p.precio)
-								}
-							});
-					} else {
-						return model;
-					}
-			}
+								catalogo: _Utils_ap(
+									model.catalogo,
+									_List_fromArray(
+										[nuevo])),
+								nextProductoId: model.nextProductoId + 1,
+								page: $author$project$Types$ProductosPage(
+									$author$project$Update$Productos$resetForm(data))
+							}),
+						true);
+				} else {
+					return _Utils_Tuple2(model, false);
+				}
+			case 'GuardarEdicionProducto':
+				var id = msg.a;
+				var _v3 = $author$project$Update$Productos$validateForm(data.form);
+				if (_v3.$ === 'Just') {
+					var _v4 = _v3.a;
+					var nombre = _v4.a;
+					var cents = _v4.b;
+					var actualizar = function (p) {
+						return _Utils_eq(p.id, id) ? _Utils_update(
+							p,
+							{nombre: nombre, precioCents: cents}) : p;
+					};
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								catalogo: A2($elm$core$List$map, actualizar, model.catalogo),
+								page: $author$project$Types$ProductosPage(
+									$author$project$Update$Productos$resetForm(data))
+							}),
+						true);
+				} else {
+					return _Utils_Tuple2(model, false);
+				}
+			case 'EditarProducto':
+				var id = msg.a;
+				var _v5 = $elm$core$List$head(
+					A2(
+						$elm$core$List$filter,
+						function (p) {
+							return _Utils_eq(p.id, id);
+						},
+						model.catalogo));
+				if (_v5.$ === 'Just') {
+					var p = _v5.a;
+					return _Utils_Tuple2(
+						A2(
+							$author$project$Update$Productos$setPage,
+							model,
+							_Utils_update(
+								data,
+								{
+									editandoId: $elm$core$Maybe$Just(id),
+									form: {
+										nombre: p.nombre,
+										precio: $author$project$Money$centsToDecimalString(p.precioCents)
+									}
+								})),
+						false);
+				} else {
+					return _Utils_Tuple2(model, false);
+				}
+			case 'PedirEliminarProducto':
+				var id = msg.a;
+				return _Utils_Tuple2(
+					A2(
+						$author$project$Update$Productos$setPage,
+						model,
+						_Utils_update(
+							data,
+							{
+								confirmandoEliminar: $elm$core$Maybe$Just(id)
+							})),
+					false);
+			case 'CancelarEliminarProducto':
+				return _Utils_Tuple2(
+					A2(
+						$author$project$Update$Productos$setPage,
+						model,
+						_Utils_update(
+							data,
+							{confirmandoEliminar: $elm$core$Maybe$Nothing})),
+					false);
+			default:
+				var _v6 = data.confirmandoEliminar;
+				if (_v6.$ === 'Just') {
+					var id = _v6.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								catalogo: A2(
+									$elm$core$List$filter,
+									function (p) {
+										return !_Utils_eq(p.id, id);
+									},
+									model.catalogo),
+								page: $author$project$Types$ProductosPage(
+									_Utils_update(
+										data,
+										{confirmandoEliminar: $elm$core$Maybe$Nothing}))
+							}),
+						true);
+				} else {
+					return _Utils_Tuple2(model, false);
+				}
+		}
+	});
+var $author$project$Update$Productos$update = F3(
+	function (msg, model, saveState) {
+		var _v0 = model.page;
+		if (_v0.$ === 'ProductosPage') {
+			var data = _v0.a;
+			var _v1 = A3($author$project$Update$Productos$handle, msg, model, data);
+			var newModel = _v1.a;
+			var persist = _v1.b;
+			return persist ? _Utils_Tuple2(
+				newModel,
+				saveState(newModel)) : _Utils_Tuple2(newModel, $elm$core$Platform$Cmd$none);
+		} else {
+			return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 		}
 	});
 var $author$project$Update$update = F2(
@@ -7061,42 +7643,29 @@ var $author$project$Update$update = F2(
 			case 'NavMsg':
 				var navMsg = msg.a;
 				return A2($author$project$Update$Navegacion$update, navMsg, model);
-			case 'ArchivoMsg':
-				var archMsg = msg.a;
-				return A3($author$project$Update$Archivos$update, $author$project$Update$saveState, archMsg, model);
 			case 'ProdMsg':
 				var prodMsg = msg.a;
-				switch (prodMsg.$) {
-					case 'AgregarProducto':
-						return _Utils_Tuple2(
-							A2($author$project$Update$Productos$update, prodMsg, model),
-							$author$project$Update$saveState(model));
-					case 'EliminarProducto':
-						return _Utils_Tuple2(
-							A2($author$project$Update$Productos$update, prodMsg, model),
-							$author$project$Update$saveState(model));
-					case 'ConfirmarEliminarProducto':
-						return _Utils_Tuple2(
-							A2($author$project$Update$Productos$update, prodMsg, model),
-							$author$project$Update$saveState(model));
-					default:
-						return _Utils_Tuple2(
-							A2($author$project$Update$Productos$update, prodMsg, model),
-							$elm$core$Platform$Cmd$none);
-				}
-			default:
+				return A3($author$project$Update$Productos$update, prodMsg, model, $author$project$Update$saveState);
+			case 'PedMsg':
 				var pedMsg = msg.a;
 				return A3($author$project$Update$Pedidos$update, pedMsg, model, $author$project$Update$saveState);
+			case 'ItemMsg':
+				var itemMsg = msg.a;
+				return A3($author$project$Update$Pedidos$Items$update, itemMsg, model, $author$project$Update$saveState);
+			default:
+				var archMsg = msg.a;
+				return A3($author$project$Update$Archivos$update, $author$project$Update$saveState, archMsg, model);
 		}
 	});
-var $elm$json$Json$Decode$value = _Json_decodeValue;
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
+var $author$project$Messages$CancelarEliminarItem = {$: 'CancelarEliminarItem'};
+var $author$project$Messages$ConfirmarEliminarItem = {$: 'ConfirmarEliminarItem'};
 var $author$project$Messages$InputBusqueda = function (a) {
 	return {$: 'InputBusqueda', a: a};
 };
-var $author$project$Messages$ProdMsg = function (a) {
-	return {$: 'ProdMsg', a: a};
+var $author$project$Messages$ItemMsg = function (a) {
+	return {$: 'ItemMsg', a: a};
 };
 var $elm$html$Html$article = _VirtualDom_node('article');
 var $elm$html$Html$Attributes$stringProperty = F2(
@@ -7107,7 +7676,85 @@ var $elm$html$Html$Attributes$stringProperty = F2(
 			$elm$json$Json$Encode$string(string));
 	});
 var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
+var $elm$html$Html$button = _VirtualDom_node('button');
 var $elm$html$Html$div = _VirtualDom_node('div');
+var $elm$html$Html$header = _VirtualDom_node('header');
+var $elm$virtual_dom$VirtualDom$Normal = function (a) {
+	return {$: 'Normal', a: a};
+};
+var $elm$virtual_dom$VirtualDom$on = _VirtualDom_on;
+var $elm$html$Html$Events$on = F2(
+	function (event, decoder) {
+		return A2(
+			$elm$virtual_dom$VirtualDom$on,
+			event,
+			$elm$virtual_dom$VirtualDom$Normal(decoder));
+	});
+var $elm$html$Html$Events$onClick = function (msg) {
+	return A2(
+		$elm$html$Html$Events$on,
+		'click',
+		$elm$json$Json$Decode$succeed(msg));
+};
+var $author$project$View$Components$confirmModal = function (_v0) {
+	var titulo = _v0.titulo;
+	var mensaje = _v0.mensaje;
+	var onCancel = _v0.onCancel;
+	var onConfirm = _v0.onConfirm;
+	return A2(
+		$elm$html$Html$div,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('modal-overlay')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$article,
+				_List_Nil,
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$header,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$elm$html$Html$text(titulo)
+							])),
+						$elm$html$Html$text(mensaje),
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('modal-actions')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$button,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('secondary'),
+										$elm$html$Html$Events$onClick(onCancel)
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Cancelar')
+									])),
+								A2(
+								$elm$html$Html$button,
+								_List_fromArray(
+									[
+										$elm$html$Html$Events$onClick(onConfirm)
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Eliminar')
+									]))
+							]))
+					]))
+			]));
+};
 var $elm$html$Html$Attributes$id = $elm$html$Html$Attributes$stringProperty('id');
 var $elm$html$Html$input = _VirtualDom_node('input');
 var $elm$html$Html$Attributes$name = $elm$html$Html$Attributes$stringProperty('name');
@@ -7118,7 +7765,6 @@ var $elm$html$Html$Events$alwaysStop = function (x) {
 var $elm$virtual_dom$VirtualDom$MayStopPropagation = function (a) {
 	return {$: 'MayStopPropagation', a: a};
 };
-var $elm$virtual_dom$VirtualDom$on = _VirtualDom_on;
 var $elm$html$Html$Events$stopPropagationOn = F2(
 	function (event, decoder) {
 		return A2(
@@ -7154,13 +7800,9 @@ var $elm$core$String$toLower = _String_toLower;
 var $elm$html$Html$tr = _VirtualDom_node('tr');
 var $elm$html$Html$Attributes$value = $elm$html$Html$Attributes$stringProperty('value');
 var $author$project$Messages$CancelarEdicionPedido = {$: 'CancelarEdicionPedido'};
-var $author$project$Messages$EntregarPedido = {$: 'EntregarPedido'};
 var $author$project$Messages$ExportarAPDF = {$: 'ExportarAPDF'};
 var $author$project$Messages$GuardarPedido = {$: 'GuardarPedido'};
-var $author$project$Messages$PedMsg = function (a) {
-	return {$: 'PedMsg', a: a};
-};
-var $elm$html$Html$button = _VirtualDom_node('button');
+var $author$project$Messages$IniciarEntregaPedido = {$: 'IniciarEntregaPedido'};
 var $elm$json$Json$Encode$bool = _Json_wrap;
 var $elm$html$Html$Attributes$boolProperty = F2(
 	function (key, bool) {
@@ -7176,22 +7818,6 @@ var $elm$core$List$isEmpty = function (xs) {
 	} else {
 		return false;
 	}
-};
-var $elm$virtual_dom$VirtualDom$Normal = function (a) {
-	return {$: 'Normal', a: a};
-};
-var $elm$html$Html$Events$on = F2(
-	function (event, decoder) {
-		return A2(
-			$elm$virtual_dom$VirtualDom$on,
-			event,
-			$elm$virtual_dom$VirtualDom$Normal(decoder));
-	});
-var $elm$html$Html$Events$onClick = function (msg) {
-	return A2(
-		$elm$html$Html$Events$on,
-		'click',
-		$elm$json$Json$Decode$succeed(msg));
 };
 var $author$project$View$Pedidos$Actions$viewActions = function (pedido) {
 	return _Utils_eq(pedido.estado, $author$project$Types$Entregado) ? A2(
@@ -7237,7 +7863,7 @@ var $author$project$View$Pedidos$Actions$viewActions = function (pedido) {
 					[
 						$elm$html$Html$Attributes$class('outline'),
 						$elm$html$Html$Events$onClick(
-						$author$project$Messages$PedMsg($author$project$Messages$EntregarPedido)),
+						$author$project$Messages$PedMsg($author$project$Messages$IniciarEntregaPedido)),
 						$elm$html$Html$Attributes$disabled(
 						$elm$core$List$isEmpty(pedido.items))
 					]),
@@ -7261,6 +7887,9 @@ var $author$project$View$Pedidos$Actions$viewActions = function (pedido) {
 var $author$project$Messages$AgregarItemAPedido = function (a) {
 	return {$: 'AgregarItemAPedido', a: a};
 };
+var $author$project$Money$formatCents = function (cents) {
+	return '$' + $author$project$Money$centsToDecimalString(cents);
+};
 var $elm$html$Html$td = _VirtualDom_node('td');
 var $author$project$View$Pedidos$ProductList$viewAgregarProductoAPedido = function (producto) {
 	return A2(
@@ -7281,7 +7910,7 @@ var $author$project$View$Pedidos$ProductList$viewAgregarProductoAPedido = functi
 				_List_fromArray(
 					[
 						$elm$html$Html$text(
-						'$' + $elm$core$String$fromFloat(producto.precio))
+						$author$project$Money$formatCents(producto.precioCents))
 					])),
 				A2(
 				$elm$html$Html$td,
@@ -7294,7 +7923,7 @@ var $author$project$View$Pedidos$ProductList$viewAgregarProductoAPedido = functi
 							[
 								$elm$html$Html$Attributes$class('outline'),
 								$elm$html$Html$Events$onClick(
-								$author$project$Messages$PedMsg(
+								$author$project$Messages$ItemMsg(
 									$author$project$Messages$AgregarItemAPedido(producto.id)))
 							]),
 						_List_fromArray(
@@ -7314,7 +7943,6 @@ var $elm$virtual_dom$VirtualDom$attribute = F2(
 var $elm$html$Html$Attributes$attribute = $elm$virtual_dom$VirtualDom$attribute;
 var $elm$html$Html$h1 = _VirtualDom_node('h1');
 var $elm$html$Html$h3 = _VirtualDom_node('h3');
-var $elm$html$Html$header = _VirtualDom_node('header');
 var $author$project$View$Pedidos$Header$viewHeader = function (pedido) {
 	var esSoloLectura = _Utils_eq(pedido.estado, $author$project$Types$Entregado);
 	return A2(
@@ -7366,70 +7994,6 @@ var $author$project$View$Pedidos$Header$viewHeader = function (pedido) {
 					])) : $elm$html$Html$text('')
 			]));
 };
-var $author$project$Messages$CancelarEliminarItem = {$: 'CancelarEliminarItem'};
-var $author$project$Messages$ConfirmarEliminarItem = {$: 'ConfirmarEliminarItem'};
-var $author$project$View$Pedidos$Modal$viewModalConfirmacion = function (model) {
-	var _v0 = model.interfaz;
-	if (_v0.$ === 'ConfirmandoEliminarItem') {
-		return A2(
-			$elm$html$Html$div,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('modal-overlay')
-				]),
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$article,
-					_List_Nil,
-					_List_fromArray(
-						[
-							A2(
-							$elm$html$Html$header,
-							_List_Nil,
-							_List_fromArray(
-								[
-									$elm$html$Html$text('Confirmar eliminación')
-								])),
-							$elm$html$Html$text('¿Estás seguro de que deseas eliminar este producto del pedido?'),
-							A2(
-							$elm$html$Html$div,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$class('modal-actions')
-								]),
-							_List_fromArray(
-								[
-									A2(
-									$elm$html$Html$button,
-									_List_fromArray(
-										[
-											$elm$html$Html$Attributes$class('secondary'),
-											$elm$html$Html$Events$onClick(
-											$author$project$Messages$PedMsg($author$project$Messages$CancelarEliminarItem))
-										]),
-									_List_fromArray(
-										[
-											$elm$html$Html$text('Cancelar')
-										])),
-									A2(
-									$elm$html$Html$button,
-									_List_fromArray(
-										[
-											$elm$html$Html$Events$onClick(
-											$author$project$Messages$PedMsg($author$project$Messages$ConfirmarEliminarItem))
-										]),
-									_List_fromArray(
-										[
-											$elm$html$Html$text('Eliminar')
-										]))
-								]))
-						]))
-				]));
-	} else {
-		return A2($elm$html$Html$div, _List_Nil, _List_Nil);
-	}
-};
 var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
 var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
 var $elm$html$Html$tfoot = _VirtualDom_node('tfoot');
@@ -7471,7 +8035,7 @@ var $author$project$View$Pedidos$Components$viewItem = F2(
 									$elm$html$Html$Events$onInput(
 									A2(
 										$elm$core$Basics$composeL,
-										$author$project$Messages$PedMsg,
+										$author$project$Messages$ItemMsg,
 										$author$project$Messages$CambiarCantidadItem(item.productoId))),
 									A2($elm$html$Html$Attributes$attribute, 'min', '1')
 								]),
@@ -7483,7 +8047,7 @@ var $author$project$View$Pedidos$Components$viewItem = F2(
 					_List_fromArray(
 						[
 							$elm$html$Html$text(
-							'$' + $elm$core$String$fromFloat(item.snapshot.precio))
+							$author$project$Money$formatCents(item.snapshot.precioCents))
 						])),
 					A2(
 					$elm$html$Html$td,
@@ -7491,7 +8055,7 @@ var $author$project$View$Pedidos$Components$viewItem = F2(
 					_List_fromArray(
 						[
 							$elm$html$Html$text(
-							'$' + $elm$core$String$fromFloat(item.snapshot.precio * item.cantidad))
+							$author$project$Money$formatCents(item.snapshot.precioCents * item.cantidad))
 						])),
 					esSoloLectura ? $elm$html$Html$text('') : A2(
 					$elm$html$Html$td,
@@ -7504,7 +8068,7 @@ var $author$project$View$Pedidos$Components$viewItem = F2(
 								[
 									$elm$html$Html$Attributes$class('outline secondary'),
 									$elm$html$Html$Events$onClick(
-									$author$project$Messages$PedMsg(
+									$author$project$Messages$ItemMsg(
 										$author$project$Messages$PedirEliminarItem(item.productoId))),
 									A2($elm$html$Html$Attributes$attribute, 'aria-label', 'Eliminar')
 								]),
@@ -7517,6 +8081,14 @@ var $author$project$View$Pedidos$Components$viewItem = F2(
 	});
 var $author$project$View$Pedidos$Table$viewTablaItems = F2(
 	function (esSoloLectura, items) {
+		var total = A3(
+			$elm$core$List$foldl,
+			F2(
+				function (item, acc) {
+					return acc + (item.snapshot.precioCents * item.cantidad);
+				}),
+			0,
+			items);
 		return A2(
 			$elm$html$Html$table,
 			_List_fromArray(
@@ -7610,23 +8182,15 @@ var $author$project$View$Pedidos$Table$viewTablaItems = F2(
 									_List_fromArray(
 										[
 											$elm$html$Html$text(
-											'$' + $elm$core$String$fromFloat(
-												A3(
-													$elm$core$List$foldl,
-													F2(
-														function (item, acc) {
-															return acc + (item.snapshot.precio * item.cantidad);
-														}),
-													0,
-													items)))
+											$author$project$Money$formatCents(total))
 										])),
 									esSoloLectura ? $elm$html$Html$text('') : A2($elm$html$Html$td, _List_Nil, _List_Nil)
 								]))
 						]))
 				]));
 	});
-var $author$project$View$Pedidos$viewEditarPedido = F2(
-	function (model, pedido) {
+var $author$project$View$Pedidos$viewEditarPedido = F3(
+	function (catalogo, data, pedido) {
 		var esSoloLectura = _Utils_eq(pedido.estado, $author$project$Types$Entregado);
 		return A2(
 			$elm$html$Html$article,
@@ -7645,7 +8209,20 @@ var $author$project$View$Pedidos$viewEditarPedido = F2(
 							A2($author$project$View$Pedidos$Table$viewTablaItems, esSoloLectura, pedido.items)
 						])),
 					$author$project$View$Pedidos$Actions$viewActions(pedido),
-					$author$project$View$Pedidos$Modal$viewModalConfirmacion(model),
+					function () {
+					var _v0 = data.confirmandoEliminarItem;
+					if (_v0.$ === 'Just') {
+						return $author$project$View$Components$confirmModal(
+							{
+								mensaje: '¿Estás seguro de que deseas eliminar este producto del pedido?',
+								onCancel: $author$project$Messages$ItemMsg($author$project$Messages$CancelarEliminarItem),
+								onConfirm: $author$project$Messages$ItemMsg($author$project$Messages$ConfirmarEliminarItem),
+								titulo: 'Confirmar eliminación'
+							});
+					} else {
+						return $elm$html$Html$text('');
+					}
+				}(),
 					(!esSoloLectura) ? A2(
 					$elm$html$Html$section,
 					_List_Nil,
@@ -7658,12 +8235,12 @@ var $author$project$View$Pedidos$viewEditarPedido = F2(
 									$elm$html$Html$Attributes$id('busqueda-producto'),
 									$elm$html$Html$Attributes$name('busqueda'),
 									$elm$html$Html$Attributes$placeholder('Buscar producto para agregar...'),
-									$elm$html$Html$Attributes$value(model.busquedaProducto),
+									$elm$html$Html$Attributes$value(data.busqueda),
 									$elm$html$Html$Events$onInput(
-									A2($elm$core$Basics$composeL, $author$project$Messages$ProdMsg, $author$project$Messages$InputBusqueda))
+									A2($elm$core$Basics$composeL, $author$project$Messages$ItemMsg, $author$project$Messages$InputBusqueda))
 								]),
 							_List_Nil),
-							$elm$core$String$isEmpty(model.busquedaProducto) ? A2($elm$html$Html$div, _List_Nil, _List_Nil) : A2(
+							$elm$core$String$isEmpty(data.busqueda) ? A2($elm$html$Html$div, _List_Nil, _List_Nil) : A2(
 							$elm$html$Html$section,
 							_List_fromArray(
 								[
@@ -7723,31 +8300,60 @@ var $author$project$View$Pedidos$viewEditarPedido = F2(
 													function (p) {
 														return A2(
 															$elm$core$String$contains,
-															$elm$core$String$toLower(model.busquedaProducto),
+															$elm$core$String$toLower(data.busqueda),
 															$elm$core$String$toLower(p.nombre));
 													},
-													model.catalogo)))
+													catalogo)))
 										]))
 								]))
 						])) : A2($elm$html$Html$div, _List_Nil, _List_Nil)
 				]));
 	});
+var $author$project$Messages$CancelarEliminarProducto = {$: 'CancelarEliminarProducto'};
 var $author$project$Messages$CargarProductosCSV = {$: 'CargarProductosCSV'};
+var $author$project$Messages$ConfirmarEliminarProducto = {$: 'ConfirmarEliminarProducto'};
 var $author$project$Messages$IrAInicio = {$: 'IrAInicio'};
-var $author$project$Messages$AgregarProducto = {$: 'AgregarProducto'};
+var $author$project$Messages$ProdMsg = function (a) {
+	return {$: 'ProdMsg', a: a};
+};
+var $author$project$Messages$CrearProducto = {$: 'CrearProducto'};
+var $author$project$Messages$GuardarEdicionProducto = function (a) {
+	return {$: 'GuardarEdicionProducto', a: a};
+};
 var $author$project$Messages$InputNombreProducto = function (a) {
 	return {$: 'InputNombreProducto', a: a};
 };
 var $author$project$Messages$InputPrecioProducto = function (a) {
 	return {$: 'InputPrecioProducto', a: a};
 };
-var $author$project$View$Productos$Formulario$viewFormulario = function (model) {
-	var precioValido = A2(
-		$elm$core$Maybe$withDefault,
-		0.0,
-		$elm$core$String$toFloat(model.nuevoProducto.precio)) > 0;
-	var nombreValido = $elm$core$String$trim(model.nuevoProducto.nombre) !== '';
+var $author$project$View$Productos$Formulario$viewFormulario = function (data) {
+	var precioValido = function () {
+		var _v2 = $author$project$Money$parseCents(data.form.precio);
+		if (_v2.$ === 'Just') {
+			var c = _v2.a;
+			return c > 0;
+		} else {
+			return false;
+		}
+	}();
+	var nombreValido = $elm$core$String$trim(data.form.nombre) !== '';
 	var formularioValido = nombreValido && precioValido;
+	var _v0 = function () {
+		var _v1 = data.editandoId;
+		if (_v1.$ === 'Just') {
+			var productoId = _v1.a;
+			return _Utils_Tuple2(
+				$author$project$Messages$ProdMsg(
+					$author$project$Messages$GuardarEdicionProducto(productoId)),
+				'💾');
+		} else {
+			return _Utils_Tuple2(
+				$author$project$Messages$ProdMsg($author$project$Messages$CrearProducto),
+				'➕');
+		}
+	}();
+	var btnMsg = _v0.a;
+	var btnText = _v0.b;
 	return A2(
 		$elm$html$Html$section,
 		_List_Nil,
@@ -7760,7 +8366,7 @@ var $author$project$View$Productos$Formulario$viewFormulario = function (model) 
 						$elm$html$Html$Attributes$id('producto-nombre'),
 						$elm$html$Html$Attributes$name('nombre'),
 						$elm$html$Html$Attributes$placeholder('Nombre'),
-						$elm$html$Html$Attributes$value(model.nuevoProducto.nombre),
+						$elm$html$Html$Attributes$value(data.form.nombre),
 						$elm$html$Html$Events$onInput(
 						A2($elm$core$Basics$composeL, $author$project$Messages$ProdMsg, $author$project$Messages$InputNombreProducto))
 					]),
@@ -7773,7 +8379,7 @@ var $author$project$View$Productos$Formulario$viewFormulario = function (model) 
 						$elm$html$Html$Attributes$name('precio'),
 						$elm$html$Html$Attributes$placeholder('Precio'),
 						$elm$html$Html$Attributes$type_('number'),
-						$elm$html$Html$Attributes$value(model.nuevoProducto.precio),
+						$elm$html$Html$Attributes$value(data.form.precio),
 						$elm$html$Html$Events$onInput(
 						A2($elm$core$Basics$composeL, $author$project$Messages$ProdMsg, $author$project$Messages$InputPrecioProducto))
 					]),
@@ -7782,87 +8388,14 @@ var $author$project$View$Productos$Formulario$viewFormulario = function (model) 
 				$elm$html$Html$button,
 				_List_fromArray(
 					[
-						$elm$html$Html$Events$onClick(
-						$author$project$Messages$ProdMsg($author$project$Messages$AgregarProducto)),
+						$elm$html$Html$Events$onClick(btnMsg),
 						$elm$html$Html$Attributes$disabled(!formularioValido)
 					]),
 				_List_fromArray(
 					[
-						$elm$html$Html$text(
-						function () {
-							var _v0 = model.interfaz;
-							if (_v0.$ === 'EditandoProducto') {
-								return '💾';
-							} else {
-								return '➕';
-							}
-						}())
+						$elm$html$Html$text(btnText)
 					]))
 			]));
-};
-var $author$project$Messages$CancelarEliminarProducto = {$: 'CancelarEliminarProducto'};
-var $author$project$Messages$ConfirmarEliminarProducto = {$: 'ConfirmarEliminarProducto'};
-var $author$project$View$Productos$Modal$viewModalConfirmacionProducto = function (model) {
-	var _v0 = model.interfaz;
-	if (_v0.$ === 'ConfirmandoEliminarProducto') {
-		return A2(
-			$elm$html$Html$div,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('modal-overlay')
-				]),
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$article,
-					_List_Nil,
-					_List_fromArray(
-						[
-							A2(
-							$elm$html$Html$header,
-							_List_Nil,
-							_List_fromArray(
-								[
-									$elm$html$Html$text('Confirmar eliminación')
-								])),
-							$elm$html$Html$text('¿Estás seguro de que deseas eliminar este producto? Se eliminará del catálogo.'),
-							A2(
-							$elm$html$Html$div,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$class('modal-actions')
-								]),
-							_List_fromArray(
-								[
-									A2(
-									$elm$html$Html$button,
-									_List_fromArray(
-										[
-											$elm$html$Html$Attributes$class('secondary'),
-											$elm$html$Html$Events$onClick(
-											$author$project$Messages$ProdMsg($author$project$Messages$CancelarEliminarProducto))
-										]),
-									_List_fromArray(
-										[
-											$elm$html$Html$text('Cancelar')
-										])),
-									A2(
-									$elm$html$Html$button,
-									_List_fromArray(
-										[
-											$elm$html$Html$Events$onClick(
-											$author$project$Messages$ProdMsg($author$project$Messages$ConfirmarEliminarProducto))
-										]),
-									_List_fromArray(
-										[
-											$elm$html$Html$text('Eliminar')
-										]))
-								]))
-						]))
-				]));
-	} else {
-		return A2($elm$html$Html$div, _List_Nil, _List_Nil);
-	}
 };
 var $author$project$Messages$EditarProducto = function (a) {
 	return {$: 'EditarProducto', a: a};
@@ -7889,7 +8422,7 @@ var $author$project$View$Productos$Tabla$viewProducto = function (producto) {
 				_List_fromArray(
 					[
 						$elm$html$Html$text(
-						'$' + $elm$core$String$fromFloat(producto.precio))
+						$author$project$Money$formatCents(producto.precioCents))
 					])),
 				A2(
 				$elm$html$Html$td,
@@ -7975,64 +8508,78 @@ var $author$project$View$Productos$Tabla$viewTablaProductos = function (producto
 				A2($elm$core$List$map, $author$project$View$Productos$Tabla$viewProducto, productos))
 			]));
 };
-var $author$project$View$Productos$viewGestionProductos = function (model) {
-	return A2(
-		$elm$html$Html$article,
-		_List_Nil,
-		_List_fromArray(
-			[
-				A2(
-				$elm$html$Html$header,
-				_List_Nil,
-				_List_fromArray(
-					[
-						A2(
-						$elm$html$Html$button,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('outline'),
-								$elm$html$Html$Events$onClick(
-								$author$project$Messages$NavMsg($author$project$Messages$IrAInicio)),
-								A2($elm$html$Html$Attributes$attribute, 'aria-label', 'Volver')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text('⬅️')
-							])),
-						A2(
-						$elm$html$Html$h1,
-						_List_Nil,
-						_List_fromArray(
-							[
-								$elm$html$Html$text('Gestión de Productos')
-							])),
-						A2(
-						$elm$html$Html$button,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$class('outline'),
-								$elm$html$Html$Events$onClick(
-								$author$project$Messages$ArchivoMsg($author$project$Messages$CargarProductosCSV))
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text('📥 Importar')
-							]))
-					])),
-				$author$project$View$Productos$Formulario$viewFormulario(model),
-				A2(
-				$elm$html$Html$section,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('overflow-auto')
-					]),
-				_List_fromArray(
-					[
-						$author$project$View$Productos$Tabla$viewTablaProductos(model.catalogo)
-					])),
-				$author$project$View$Productos$Modal$viewModalConfirmacionProducto(model)
-			]));
-};
+var $author$project$View$Productos$viewGestionProductos = F2(
+	function (catalogo, data) {
+		return A2(
+			$elm$html$Html$article,
+			_List_Nil,
+			_List_fromArray(
+				[
+					A2(
+					$elm$html$Html$header,
+					_List_Nil,
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$button,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('outline'),
+									$elm$html$Html$Events$onClick(
+									$author$project$Messages$NavMsg($author$project$Messages$IrAInicio)),
+									A2($elm$html$Html$Attributes$attribute, 'aria-label', 'Volver')
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text('⬅️')
+								])),
+							A2(
+							$elm$html$Html$h1,
+							_List_Nil,
+							_List_fromArray(
+								[
+									$elm$html$Html$text('Gestión de Productos')
+								])),
+							A2(
+							$elm$html$Html$button,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('outline'),
+									$elm$html$Html$Events$onClick(
+									$author$project$Messages$ArchivoMsg($author$project$Messages$CargarProductosCSV))
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text('📥 Importar')
+								]))
+						])),
+					$author$project$View$Productos$Formulario$viewFormulario(data),
+					A2(
+					$elm$html$Html$section,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('overflow-auto')
+						]),
+					_List_fromArray(
+						[
+							$author$project$View$Productos$Tabla$viewTablaProductos(catalogo)
+						])),
+					function () {
+					var _v0 = data.confirmandoEliminar;
+					if (_v0.$ === 'Just') {
+						return $author$project$View$Components$confirmModal(
+							{
+								mensaje: '¿Estás seguro de que deseas eliminar este producto? Se eliminará del catálogo.',
+								onCancel: $author$project$Messages$ProdMsg($author$project$Messages$CancelarEliminarProducto),
+								onConfirm: $author$project$Messages$ProdMsg($author$project$Messages$ConfirmarEliminarProducto),
+								titulo: 'Confirmar eliminación'
+							});
+					} else {
+						return $elm$html$Html$text('');
+					}
+				}()
+				]));
+	});
 var $author$project$Messages$ExportarPedidosCSV = {$: 'ExportarPedidosCSV'};
 var $author$project$Messages$ExportarProductosCSV = {$: 'ExportarProductosCSV'};
 var $author$project$Messages$IrAGestionProductos = {$: 'IrAGestionProductos'};
@@ -8196,7 +8743,7 @@ var $author$project$View$Pedidos$Components$viewResumenPedido = function (pedido
 					]))
 			]));
 };
-var $author$project$View$Pedidos$viewListadoPedidos = function (model) {
+var $author$project$View$Pedidos$viewListadoPedidos = function (pedidos) {
 	return A2(
 		$elm$html$Html$article,
 		_List_Nil,
@@ -8296,35 +8843,36 @@ var $author$project$View$Pedidos$viewListadoPedidos = function (model) {
 										A2(
 										$elm$html$Html$tbody,
 										_List_Nil,
-										A2($elm$core$List$map, $author$project$View$Pedidos$Components$viewResumenPedido, model.pedidos))
+										A2($elm$core$List$map, $author$project$View$Pedidos$Components$viewResumenPedido, pedidos))
 									]))
 							]))
 					]))
 			]));
 };
 var $author$project$View$view = function (model) {
-	var _v0 = model.paginaActual;
+	var _v0 = model.page;
 	switch (_v0.$) {
-		case 'Inicio':
+		case 'InicioPage':
 			return $author$project$View$Inicio$viewInicio;
-		case 'GestionProductos':
-			return $author$project$View$Productos$viewGestionProductos(model);
-		case 'ListadoPedidos':
-			return $author$project$View$Pedidos$viewListadoPedidos(model);
+		case 'ProductosPage':
+			var data = _v0.a;
+			return A2($author$project$View$Productos$viewGestionProductos, model.catalogo, data);
+		case 'PedidosListPage':
+			return $author$project$View$Pedidos$viewListadoPedidos(model.pedidos);
 		default:
-			var id = _v0.a;
+			var data = _v0.a;
 			var _v1 = $elm$core$List$head(
 				A2(
 					$elm$core$List$filter,
 					function (p) {
-						return _Utils_eq(p.id, id);
+						return _Utils_eq(p.id, data.pedidoId);
 					},
 					model.pedidos));
 			if (_v1.$ === 'Just') {
-				var p = _v1.a;
-				return A2($author$project$View$Pedidos$viewEditarPedido, model, p);
+				var pedido = _v1.a;
+				return A3($author$project$View$Pedidos$viewEditarPedido, model.catalogo, data, pedido);
 			} else {
-				return $elm$html$Html$text('Pedido no encontrado');
+				return $elm$html$Html$text('');
 			}
 	}
 };
