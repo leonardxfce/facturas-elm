@@ -10,13 +10,13 @@ interface ElmApp {
 
 declare const Elm: { Main: { init: (config: { node: HTMLElement | null; flags: unknown }) => ElmApp } };
 
+const basePath = new URL(document.baseURI).pathname.replace(/\/$/, '');
 const storedData = localStorage.getItem('facturasData');
-const initialFlags: unknown = storedData ? JSON.parse(storedData) : null;
-console.log("Flags enviados a Elm:", initialFlags);
+const storage: unknown = storedData ? JSON.parse(storedData) : null;
 
 const app = Elm.Main.init({
     node: document.getElementById('elm-app'),
-    flags: initialFlags
+    flags: { basePath, storage }
 });
 
 app.ports.saveStorage.subscribe((data: unknown) => {
