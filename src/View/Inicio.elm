@@ -3,7 +3,7 @@ module View.Inicio exposing (viewInicio)
 import Html exposing (Html, article, button, h1, section, text)
 import Html.Attributes exposing (class)
 import Html.Events exposing (onClick)
-import Messages exposing (..)
+import Messages exposing (ArchivoMsg(..), Msg(..), NavegacionMsg(..))
 
 
 viewInicio : Html Msg

@@ -7,34 +7,11 @@ import Json.Encode as Encode
 import Messages exposing (ArchivoMsg(..), Msg(..), NavegacionMsg(..))
 import Persistence exposing (decodeModel)
 import Ports exposing (fileContentReceived)
-import Types exposing (Model, Pagina(..), initModel)
+import Routing
+import Types exposing (Model, initModel)
 import Update exposing (update)
 import Url exposing (Url)
-import Url.Parser as Parser exposing ((</>), Parser, int, s)
 import View exposing (view)
-
-
-
--- ROUTING
-
-
-routeParser : Parser (Pagina -> a) a
-routeParser =
-    Parser.oneOf
-        [ Parser.map Inicio Parser.top
-        , Parser.map GestionProductos (s "productos")
-        , Parser.map ListadoPedidos (s "pedidos")
-        , Parser.map EditandoPedido (s "pedidos" </> int)
-        ]
-
-
-urlToPage : Url -> Pagina
-urlToPage url =
-    Parser.parse routeParser url |> Maybe.withDefault Inicio
-
-
-
--- MAIN
 
 
 main : Program Encode.Value Model Msg
@@ -52,39 +29,26 @@ main =
 init : Encode.Value -> Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url key =
     let
-        decoded =
-            Decode.decodeValue decodeModel flags
+        basePath =
+            Decode.decodeValue (Decode.field "basePath" Decode.string) flags
+                |> Result.withDefault ""
 
-        baseModel =
-            initModel key url
+        storage =
+            Decode.decodeValue (Decode.field "storage" Decode.value) flags
+                |> Result.withDefault Encode.null
 
-        model =
-            case decoded of
+        base =
+            initModel basePath key url
+
+        withData =
+            case Decode.decodeValue decodeModel storage of
                 Ok patcher ->
-                    patcher baseModel
+                    patcher base
 
                 Err _ ->
-                    baseModel
+                    base
 
-        -- Sincronizar página actual con la URL inicial
-        pagina =
-            urlToPage url
-
-        modelConPagina =
-            { model | paginaActual = pagina }
-
-        -- Lógica de recuperación
-        ( finalModel, cmd ) =
-            case pagina of
-                EditandoPedido id ->
-                    case List.filter (\p -> p.id == id) modelConPagina.pedidos |> List.head of
-                        Just _ ->
-                            ( modelConPagina, Cmd.none )
-
-                        Nothing ->
-                            ( { modelConPagina | paginaActual = ListadoPedidos }, Nav.replaceUrl key "/pedidos" )
-
-                _ ->
-                    ( modelConPagina, Cmd.none )
+        ( page, cmd ) =
+            Routing.routeToPageState (Routing.parseUrl basePath url) withData
     in
-    ( finalModel, cmd )
+    ( { withData | page = page }, cmd )

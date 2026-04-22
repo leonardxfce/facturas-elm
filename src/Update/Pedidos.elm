@@ -1,9 +1,11 @@
-module Update.Pedidos exposing (update)
+module Update.Pedidos exposing (mapPedido, update)
 
 import Browser.Navigation as Nav
-import Messages exposing (Msg, PedidoMsg(..))
-import Types exposing (Estado(..), Model)
-import Update.Pedidos.Items as UpdateItems
+import Messages exposing (Msg(..), PedidoMsg(..))
+import Routing exposing (Route(..))
+import Task
+import Time
+import Types exposing (Estado(..), Model, PageState(..), Pedido)
 
 
 update : PedidoMsg -> Model -> (Model -> Cmd Msg) -> ( Model, Cmd Msg )
@@ -18,74 +20,141 @@ update msg model saveState =
                     , fechaEntrega = Nothing
                     }
 
-                nuevoModel =
+                newModel =
                     { model
                         | pedidos = model.pedidos ++ [ nuevoPedido ]
                         , nextPedidoId = model.nextPedidoId + 1
                     }
             in
-            ( nuevoModel
+            ( newModel
             , Cmd.batch
-                [ saveState nuevoModel
-                , Nav.pushUrl model.key ("/pedidos/" ++ String.fromInt nuevoPedido.id)
+                [ saveState newModel
+                , Nav.pushUrl model.key (Routing.routeToUrl model.basePath (RouteEditarPedido nuevoPedido.id))
                 ]
             )
 
         EliminarPedido id ->
             let
-                nuevoModel =
+                newModel =
                     { model | pedidos = List.filter (\p -> p.id /= id) model.pedidos }
             in
-            ( nuevoModel, saveState nuevoModel )
+            ( newModel, saveState newModel )
 
         GuardarPedido ->
-            ( model, Nav.pushUrl model.key "/pedidos" )
+            ( model, Nav.pushUrl model.key (Routing.routeToUrl model.basePath RouteListadoPedidos) )
 
         CancelarEdicionPedido ->
-            ( model, Nav.pushUrl model.key "/pedidos" )
+            ( model, Nav.pushUrl model.key (Routing.routeToUrl model.basePath RouteListadoPedidos) )
 
-        EntregarPedido ->
-            case model.paginaActual of
-                Types.EditandoPedido id ->
+        IniciarEntregaPedido ->
+            case model.page of
+                PedidoEditPage _ ->
+                    ( model, Task.perform (PedMsg << EntregarPedidoConFecha) Time.now )
+
+                _ ->
+                    ( model, Cmd.none )
+
+        EntregarPedidoConFecha posix ->
+            case model.page of
+                PedidoEditPage data ->
                     let
-                        nuevosPedidos =
-                            List.map
-                                (\p ->
-                                    if p.id == id then
-                                        { p
-                                            | estado = Entregado
-                                            , fechaEntrega = Just "2026-04-19 12:00:00"
-                                        }
+                        fecha =
+                            formatPosix Time.utc posix
 
-                                    else
-                                        p
-                                )
-                                model.pedidos
-
-                        nuevoModel =
-                            { model | pedidos = nuevosPedidos }
+                        newModel =
+                            mapPedido data.pedidoId
+                                (\p -> { p | estado = Entregado, fechaEntrega = Just fecha })
+                                model
                     in
-                    ( nuevoModel
+                    ( newModel
                     , Cmd.batch
-                        [ saveState nuevoModel
-                        , Nav.pushUrl model.key "/pedidos"
+                        [ saveState newModel
+                        , Nav.pushUrl model.key (Routing.routeToUrl model.basePath RouteListadoPedidos)
                         ]
                     )
 
                 _ ->
                     ( model, Cmd.none )
 
-        AgregarItemAPedido _ ->
-            UpdateItems.updateItems msg model saveState
 
-        CambiarCantidadItem _ _ ->
-            UpdateItems.updateItems msg model saveState
+mapPedido : Int -> (Pedido -> Pedido) -> Model -> Model
+mapPedido pedidoId f model =
+    { model
+        | pedidos =
+            List.map
+                (\p ->
+                    if p.id == pedidoId then
+                        f p
 
-        PedirEliminarItem _ ->
-            UpdateItems.updateItems msg model saveState
+                    else
+                        p
+                )
+                model.pedidos
+    }
 
-        CancelarEliminarItem ->
-            UpdateItems.updateItems msg model saveState
 
-        ConfirmarEliminarItem ->
-            UpdateItems.updateItems msg model saveState
+formatPosix : Time.Zone -> Time.Posix -> String
+formatPosix zone posix =
+    let
+        pad n =
+            String.padLeft 2 '0' (String.fromInt n)
+
+        y =
+            String.fromInt (Time.toYear zone posix)
+
+        mo =
+            pad (monthToInt (Time.toMonth zone posix))
+
+        d =
+            pad (Time.toDay zone posix)
+
+        h =
+            pad (Time.toHour zone posix)
+
+        mi =
+            pad (Time.toMinute zone posix)
+
+        s =
+            pad (Time.toSecond zone posix)
+    in
+    y ++ "-" ++ mo ++ "-" ++ d ++ " " ++ h ++ ":" ++ mi ++ ":" ++ s
+
+
+monthToInt : Time.Month -> Int
+monthToInt m =
+    case m of
+        Time.Jan ->
+            1
+
+        Time.Feb ->
+            2
+
+        Time.Mar ->
+            3
+
+        Time.Apr ->
+            4
+
+        Time.May ->
+            5
+
+        Time.Jun ->
+            6
+
+        Time.Jul ->
+            7
+
+        Time.Aug ->
+            8
+
+        Time.Sep ->
+            9
+
+        Time.Oct ->
+            10
+
+        Time.Nov ->
+            11
+
+        Time.Dec ->
+            12

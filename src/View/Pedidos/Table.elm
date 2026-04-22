@@ -1,14 +1,19 @@
 module View.Pedidos.Table exposing (viewTablaItems)
 
-import Html exposing (Html, table, tbody, td, text, th, thead, tr)
+import Html exposing (Html, table, tbody, td, text, tfoot, th, thead, tr)
 import Html.Attributes exposing (class, style)
-import Messages exposing (..)
-import Types exposing (..)
+import Messages exposing (Msg)
+import Money
+import Types exposing (Item)
 import View.Pedidos.Components as PedidosComponents
 
 
 viewTablaItems : Bool -> List Item -> Html Msg
 viewTablaItems esSoloLectura items =
+    let
+        total =
+            List.foldl (\item acc -> acc + item.snapshot.precioCents * item.cantidad) 0 items
+    in
     table [ class "striped" ]
         [ thead []
             [ tr []
@@ -24,12 +29,12 @@ viewTablaItems esSoloLectura items =
                 ]
             ]
         , tbody [] (List.map (PedidosComponents.viewItem esSoloLectura) items)
-        , Html.tfoot []
+        , tfoot []
             [ tr []
                 [ td [] []
                 , td [] []
                 , td [ style "font-weight" "bold" ] [ text "Total" ]
-                , td [ style "font-weight" "bold" ] [ text ("$" ++ String.fromFloat (List.foldl (\item acc -> acc + (item.snapshot.precio * toFloat item.cantidad)) 0 items)) ]
+                , td [ style "font-weight" "bold" ] [ text (Money.formatCents total) ]
                 , if esSoloLectura then
                     text ""
 

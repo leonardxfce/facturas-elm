@@ -3,7 +3,8 @@ module View.Pedidos.Components exposing (viewItem, viewResumenPedido)
 import Html exposing (Html, button, input, span, td, text, tr)
 import Html.Attributes exposing (attribute, class, type_, value)
 import Html.Events exposing (onClick, onInput)
-import Messages exposing (Msg(..), NavegacionMsg(..), PedidoMsg(..))
+import Messages exposing (ItemMsg(..), Msg(..), NavegacionMsg(..), PedidoMsg(..))
+import Money
 import Types exposing (Estado(..), Item, Pedido, estadoToString)
 
 
@@ -47,15 +48,21 @@ viewItem esSoloLectura item =
                 text (String.fromInt item.cantidad)
 
               else
-                input [ type_ "number", value (String.fromInt item.cantidad), onInput (PedMsg << CambiarCantidadItem item.productoId), attribute "min" "1" ] []
+                input
+                    [ type_ "number"
+                    , value (String.fromInt item.cantidad)
+                    , onInput (ItemMsg << CambiarCantidadItem item.productoId)
+                    , attribute "min" "1"
+                    ]
+                    []
             ]
-        , td [] [ text ("$" ++ String.fromFloat item.snapshot.precio) ]
-        , td [] [ text ("$" ++ String.fromFloat (item.snapshot.precio * toFloat item.cantidad)) ]
+        , td [] [ text (Money.formatCents item.snapshot.precioCents) ]
+        , td [] [ text (Money.formatCents (item.snapshot.precioCents * item.cantidad)) ]
         , if esSoloLectura then
             text ""
 
           else
             td []
-                [ button [ class "outline secondary", onClick (PedMsg (PedirEliminarItem item.productoId)), attribute "aria-label" "Eliminar" ] [ text "🗑️" ]
+                [ button [ class "outline secondary", onClick (ItemMsg (PedirEliminarItem item.productoId)), attribute "aria-label" "Eliminar" ] [ text "🗑️" ]
                 ]
         ]

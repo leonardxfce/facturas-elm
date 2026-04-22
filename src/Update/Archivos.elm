@@ -1,6 +1,7 @@
 module Update.Archivos exposing (update)
 
 import Messages exposing (ArchivoMsg(..), Msg)
+import Money
 import Ports exposing (downloadFile, selectFile, triggerPrint)
 import Types exposing (Model, estadoToString)
 
@@ -12,7 +13,14 @@ update saveState msg model =
             ( model, triggerPrint () )
 
         ExportarProductosCSV ->
-            ( model, downloadFile { name = "productos.csv", content = "Nombre,Precio\n" ++ (model.catalogo |> List.map (\p -> p.nombre ++ "," ++ String.fromFloat p.precio) |> String.join "\n") } )
+            let
+                row p =
+                    escapeCsvField p.nombre ++ "," ++ Money.centsToDecimalString p.precioCents
+
+                contenido =
+                    "Nombre,Precio\n" ++ String.join "\n" (List.map row model.catalogo)
+            in
+            ( model, downloadFile { name = "productos.csv", content = contenido } )
 
         ExportarPedidosCSV ->
             let
@@ -23,17 +31,14 @@ update saveState msg model =
                     pedido.items
                         |> List.map
                             (\item ->
-                                String.fromInt pedido.id
-                                    ++ ","
-                                    ++ estadoToString pedido.estado
-                                    ++ ","
-                                    ++ item.snapshot.nombre
-                                    ++ ","
-                                    ++ String.fromInt item.cantidad
-                                    ++ ","
-                                    ++ String.fromFloat item.snapshot.precio
-                                    ++ ","
-                                    ++ String.fromFloat (item.snapshot.precio * toFloat item.cantidad)
+                                String.join ","
+                                    [ String.fromInt pedido.id
+                                    , estadoToString pedido.estado
+                                    , escapeCsvField item.snapshot.nombre
+                                    , String.fromInt item.cantidad
+                                    , Money.centsToDecimalString item.snapshot.precioCents
+                                    , Money.centsToDecimalString (item.snapshot.precioCents * item.cantidad)
+                                    ]
                             )
                         |> String.join "\n"
 
@@ -47,28 +52,36 @@ update saveState msg model =
 
         ContenidoCSVRecibido content ->
             let
+                -- NOTE: this importer does not handle CSV fields with quoted
+                -- commas. The exporter escapes them correctly but round-tripping
+                -- a quoted field through this import will fail. Acceptable for
+                -- current use; replace with a real CSV parser if that changes.
                 lineas =
                     String.lines content |> List.drop 1
 
                 procesarLinea linea ( actualCatalogo, nextId ) =
-                    let
-                        partes =
-                            String.split "," linea
-                    in
-                    case partes of
-                        [ nombre, precioStr ] ->
+                    case String.split "," linea of
+                        [ nombreRaw, precioStr ] ->
                             let
-                                precio =
-                                    String.toFloat precioStr |> Maybe.withDefault 0.0
-
-                                nuevoProducto =
-                                    { id = nextId, nombre = nombre, precio = precio }
+                                nombre =
+                                    String.trim nombreRaw
                             in
-                            if String.trim nombre /= "" && precio > 0 then
-                                ( actualCatalogo ++ [ nuevoProducto ], nextId + 1 )
+                            case ( nombre, Money.parseCents precioStr ) of
+                                ( "", _ ) ->
+                                    ( actualCatalogo, nextId )
 
-                            else
-                                ( actualCatalogo, nextId )
+                                ( _, Nothing ) ->
+                                    ( actualCatalogo, nextId )
+
+                                ( _, Just cents ) ->
+                                    if cents <= 0 then
+                                        ( actualCatalogo, nextId )
+
+                                    else
+                                        ( actualCatalogo
+                                            ++ [ { id = nextId, nombre = nombre, precioCents = cents } ]
+                                        , nextId + 1
+                                        )
 
                         _ ->
                             ( actualCatalogo, nextId )
@@ -76,7 +89,26 @@ update saveState msg model =
                 ( nuevoCatalogo, finalNextId ) =
                     List.foldl procesarLinea ( model.catalogo, model.nextProductoId ) lineas
 
-                nuevoModel =
+                newModel =
                     { model | catalogo = nuevoCatalogo, nextProductoId = finalNextId }
             in
-            ( nuevoModel, saveState nuevoModel )
+            ( newModel, saveState newModel )
+
+
+{-| RFC 4180-ish CSV escape: wrap in double-quotes and double any existing
+quotes if the field contains any of `,` `"` `\n` `\r`.
+-}
+escapeCsvField : String -> String
+escapeCsvField s =
+    let
+        needsQuoting =
+            String.contains "," s
+                || String.contains "\"" s
+                || String.contains "\n" s
+                || String.contains "\u{000D}" s
+    in
+    if needsQuoting then
+        "\"" ++ String.replace "\"" "\"\"" s ++ "\""
+
+    else
+        s

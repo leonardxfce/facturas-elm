@@ -3,24 +3,9 @@ module Update.Navegacion exposing (update)
 import Browser
 import Browser.Navigation as Nav
 import Messages exposing (Msg, NavegacionMsg(..))
-import Types exposing (Model, Pagina(..))
+import Routing exposing (Route(..))
+import Types exposing (Model)
 import Url
-import Url.Parser as Parser exposing ((</>), Parser, int, s)
-
-
-routeParser : Parser (Pagina -> a) a
-routeParser =
-    Parser.oneOf
-        [ Parser.map Inicio Parser.top
-        , Parser.map GestionProductos (s "productos")
-        , Parser.map ListadoPedidos (s "pedidos")
-        , Parser.map EditandoPedido (s "pedidos" </> int)
-        ]
-
-
-urlToPage : Url.Url -> Pagina
-urlToPage url =
-    Parser.parse routeParser url |> Maybe.withDefault Inicio
 
 
 update : NavegacionMsg -> Model -> ( Model, Cmd Msg )
@@ -36,19 +21,19 @@ update msg model =
 
         UrlChanged url ->
             let
-                nuevaPagina =
-                    urlToPage url
+                ( page, cmd ) =
+                    Routing.routeToPageState (Routing.parseUrl model.basePath url) model
             in
-            ( { model | url = url, paginaActual = nuevaPagina, busquedaProducto = "" }, Cmd.none )
+            ( { model | url = url, page = page }, cmd )
 
         IrAInicio ->
-            ( model, Nav.pushUrl model.key "/" )
+            ( model, Nav.pushUrl model.key (Routing.routeToUrl model.basePath RouteInicio) )
 
         IrAGestionProductos ->
-            ( model, Nav.pushUrl model.key "/productos" )
+            ( model, Nav.pushUrl model.key (Routing.routeToUrl model.basePath RouteProductos) )
 
         IrAListadoPedidos ->
-            ( model, Nav.pushUrl model.key "/pedidos" )
+            ( model, Nav.pushUrl model.key (Routing.routeToUrl model.basePath RouteListadoPedidos) )
 
         IrAEditarPedido id ->
-            ( model, Nav.pushUrl model.key ("/pedidos/" ++ String.fromInt id) )
+            ( model, Nav.pushUrl model.key (Routing.routeToUrl model.basePath (RouteEditarPedido id)) )

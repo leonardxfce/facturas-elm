@@ -3,18 +3,18 @@ module View.Pedidos exposing (viewEditarPedido, viewListadoPedidos)
 import Html exposing (Html, article, button, div, h1, header, input, section, table, tbody, text, th, thead, tr)
 import Html.Attributes exposing (attribute, class, id, name, placeholder, value)
 import Html.Events exposing (onClick, onInput)
-import Messages exposing (..)
-import Types exposing (..)
+import Messages exposing (ItemMsg(..), Msg(..), NavegacionMsg(..), PedidoMsg(..))
+import Types exposing (Estado(..), Pedido, PedidoEditPageData, Producto)
+import View.Components exposing (confirmModal)
 import View.Pedidos.Actions as PedidosActions
 import View.Pedidos.Components as PedidosComponents
 import View.Pedidos.Header as PedidosHeader
-import View.Pedidos.Modal as PedidosModal
 import View.Pedidos.ProductList as ProductList
 import View.Pedidos.Table as PedidosTable
 
 
-viewListadoPedidos : Model -> Html Msg
-viewListadoPedidos model =
+viewListadoPedidos : List Pedido -> Html Msg
+viewListadoPedidos pedidos =
     article []
         [ header []
             [ button [ class "outline", onClick (NavMsg IrAInicio), attribute "aria-label" "Volver" ] [ text "⬅️" ]
@@ -31,15 +31,15 @@ viewListadoPedidos model =
                             , th [] [ text "Acciones" ]
                             ]
                         ]
-                    , tbody [] (List.map PedidosComponents.viewResumenPedido model.pedidos)
+                    , tbody [] (List.map PedidosComponents.viewResumenPedido pedidos)
                     ]
                 ]
             ]
         ]
 
 
-viewEditarPedido : Model -> Pedido -> Html Msg
-viewEditarPedido model pedido =
+viewEditarPedido : List Producto -> PedidoEditPageData -> Pedido -> Html Msg
+viewEditarPedido catalogo data pedido =
     let
         esSoloLectura =
             pedido.estado == Entregado
@@ -50,11 +50,28 @@ viewEditarPedido model pedido =
             [ PedidosTable.viewTablaItems esSoloLectura pedido.items
             ]
         , PedidosActions.viewActions pedido
-        , PedidosModal.viewModalConfirmacion model
+        , case data.confirmandoEliminarItem of
+            Just _ ->
+                confirmModal
+                    { titulo = "Confirmar eliminación"
+                    , mensaje = "¿Estás seguro de que deseas eliminar este producto del pedido?"
+                    , onCancel = ItemMsg CancelarEliminarItem
+                    , onConfirm = ItemMsg ConfirmarEliminarItem
+                    }
+
+            Nothing ->
+                text ""
         , if not esSoloLectura then
             section []
-                [ input [ id "busqueda-producto", name "busqueda", placeholder "Buscar producto para agregar...", value model.busquedaProducto, onInput (ProdMsg << InputBusqueda) ] []
-                , if String.isEmpty model.busquedaProducto then
+                [ input
+                    [ id "busqueda-producto"
+                    , name "busqueda"
+                    , placeholder "Buscar producto para agregar..."
+                    , value data.busqueda
+                    , onInput (ItemMsg << InputBusqueda)
+                    ]
+                    []
+                , if String.isEmpty data.busqueda then
                     div [] []
 
                   else
@@ -68,8 +85,8 @@ viewEditarPedido model pedido =
                                     ]
                                 ]
                             , tbody []
-                                (model.catalogo
-                                    |> List.filter (\p -> String.contains (String.toLower model.busquedaProducto) (String.toLower p.nombre))
+                                (catalogo
+                                    |> List.filter (\p -> String.contains (String.toLower data.busqueda) (String.toLower p.nombre))
                                     |> List.map ProductList.viewAgregarProductoAPedido
                                 )
                             ]

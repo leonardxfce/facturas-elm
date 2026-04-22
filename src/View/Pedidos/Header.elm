@@ -4,7 +4,7 @@ import Html exposing (Html, button, h1, h3, header, text)
 import Html.Attributes exposing (attribute, class)
 import Html.Events exposing (onClick)
 import Messages exposing (ArchivoMsg(..), Msg(..), PedidoMsg(..))
-import Types exposing (..)
+import Types exposing (Estado(..), Pedido)
 
 
 viewHeader : Pedido -> Html Msg

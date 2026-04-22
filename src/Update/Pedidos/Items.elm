@@ -1,42 +1,56 @@
-module Update.Pedidos.Items exposing (updateItems)
+module Update.Pedidos.Items exposing (update)
 
-import Messages exposing (Msg, PedidoMsg(..))
-import Types exposing (InterfazEstado(..), Model, Pagina(..))
+import Messages exposing (ItemMsg(..), Msg)
+import Types exposing (Model, PageState(..), PedidoEditPageData)
+import Update.Pedidos exposing (mapPedido)
 
 
-updateItems : PedidoMsg -> Model -> (Model -> Cmd Msg) -> ( Model, Cmd Msg )
-updateItems msg model saveState =
+update : ItemMsg -> Model -> (Model -> Cmd Msg) -> ( Model, Cmd Msg )
+update msg model saveState =
+    case model.page of
+        PedidoEditPage data ->
+            handle msg model data saveState
+
+        _ ->
+            ( model, Cmd.none )
+
+
+handle : ItemMsg -> Model -> PedidoEditPageData -> (Model -> Cmd Msg) -> ( Model, Cmd Msg )
+handle msg model data saveState =
     case msg of
+        InputBusqueda val ->
+            ( { model | page = PedidoEditPage { data | busqueda = val } }
+            , Cmd.none
+            )
+
         AgregarItemAPedido productoId ->
-            case model.paginaActual of
-                EditandoPedido pedidoId ->
+            case List.filter (\p -> p.id == productoId) model.catalogo |> List.head of
+                Just producto ->
                     let
-                        producto =
-                            List.filter (\p -> p.id == productoId) model.catalogo
-                                |> List.head
-                                |> Maybe.withDefault { id = 0, nombre = "Desconocido", precio = 0.0 }
+                        addIfMissing p =
+                            if List.any (\i -> i.productoId == productoId) p.items then
+                                p
 
-                        nuevosPedidos =
-                            List.map
-                                (\p ->
-                                    if p.id == pedidoId then
-                                        if List.any (\i -> i.productoId == productoId) p.items then
-                                            p
+                            else
+                                { p
+                                    | items =
+                                        p.items
+                                            ++ [ { productoId = productoId
+                                                 , snapshot =
+                                                    { nombre = producto.nombre
+                                                    , precioCents = producto.precioCents
+                                                    }
+                                                 , cantidad = 1
+                                                 }
+                                               ]
+                                }
 
-                                        else
-                                            { p | items = p.items ++ [ { productoId = productoId, snapshot = { nombre = producto.nombre, precio = producto.precio }, cantidad = 1 } ] }
-
-                                    else
-                                        p
-                                )
-                                model.pedidos
-
-                        nuevoModel =
-                            { model | pedidos = nuevosPedidos }
+                        newModel =
+                            mapPedido data.pedidoId addIfMissing model
                     in
-                    ( nuevoModel, saveState nuevoModel )
+                    ( newModel, saveState newModel )
 
-                _ ->
+                Nothing ->
                     ( model, Cmd.none )
 
         CambiarCantidadItem productoId nuevaCantidadStr ->
@@ -44,76 +58,54 @@ updateItems msg model saveState =
                 nuevaCantidad =
                     String.toInt nuevaCantidadStr |> Maybe.withDefault 1
             in
-            case model.paginaActual of
-                EditandoPedido pedidoId ->
-                    let
-                        nuevosPedidos =
-                            List.map
-                                (\p ->
-                                    if p.id == pedidoId then
-                                        { p
-                                            | items =
-                                                if nuevaCantidad < 1 then
-                                                    p.items
+            if nuevaCantidad < 1 then
+                ( model, Cmd.none )
 
-                                                else
-                                                    List.map
-                                                        (\i ->
-                                                            if i.productoId == productoId then
-                                                                { i | cantidad = nuevaCantidad }
+            else
+                let
+                    changeQty p =
+                        { p
+                            | items =
+                                List.map
+                                    (\i ->
+                                        if i.productoId == productoId then
+                                            { i | cantidad = nuevaCantidad }
 
-                                                            else
-                                                                i
-                                                        )
-                                                        p.items
-                                        }
+                                        else
+                                            i
+                                    )
+                                    p.items
+                        }
 
-                                    else
-                                        p
-                                )
-                                model.pedidos
-
-                        nuevoModel =
-                            { model | pedidos = nuevosPedidos }
-                    in
-                    ( nuevoModel, saveState nuevoModel )
-
-                _ ->
-                    ( model, Cmd.none )
+                    newModel =
+                        mapPedido data.pedidoId changeQty model
+                in
+                ( newModel, saveState newModel )
 
         PedirEliminarItem productoId ->
-            case model.paginaActual of
-                EditandoPedido pedidoId ->
-                    ( { model | interfaz = ConfirmandoEliminarItem { pedidoId = pedidoId, productoId = productoId } }, Cmd.none )
-
-                _ ->
-                    ( model, Cmd.none )
+            ( { model | page = PedidoEditPage { data | confirmandoEliminarItem = Just productoId } }
+            , Cmd.none
+            )
 
         CancelarEliminarItem ->
-            ( { model | interfaz = Normal }, Cmd.none )
+            ( { model | page = PedidoEditPage { data | confirmandoEliminarItem = Nothing } }
+            , Cmd.none
+            )
 
         ConfirmarEliminarItem ->
-            case ( model.paginaActual, model.interfaz ) of
-                ( EditandoPedido pedidoId, ConfirmandoEliminarItem confirmacion ) ->
+            case data.confirmandoEliminarItem of
+                Just productoId ->
                     let
-                        nuevosPedidos =
-                            List.map
-                                (\p ->
-                                    if p.id == pedidoId then
-                                        { p | items = List.filter (\i -> i.productoId /= confirmacion.productoId) p.items }
+                        removeItem p =
+                            { p | items = List.filter (\i -> i.productoId /= productoId) p.items }
 
-                                    else
-                                        p
-                                )
-                                model.pedidos
+                        cleared =
+                            { model | page = PedidoEditPage { data | confirmandoEliminarItem = Nothing } }
 
-                        nuevoModel =
-                            { model | pedidos = nuevosPedidos, interfaz = Normal }
+                        newModel =
+                            mapPedido data.pedidoId removeItem cleared
                     in
-                    ( nuevoModel, saveState nuevoModel )
+                    ( newModel, saveState newModel )
 
-                _ ->
-                    ( { model | interfaz = Normal }, Cmd.none )
-
-        _ ->
-            ( model, Cmd.none )
+                Nothing ->
+                    ( model, Cmd.none )

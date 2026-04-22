@@ -1,81 +1,151 @@
 module Update.Productos exposing (update)
 
-import Messages exposing (ProductoMsg(..))
-import Types exposing (InterfazEstado(..), Model)
+import Messages exposing (Msg, ProductoMsg(..))
+import Money
+import Types exposing (Model, PageState(..), ProductosPageData)
 
 
-update : ProductoMsg -> Model -> Model
-update msg model =
+update : ProductoMsg -> Model -> (Model -> Cmd Msg) -> ( Model, Cmd Msg )
+update msg model saveState =
+    case model.page of
+        ProductosPage data ->
+            let
+                ( newModel, persist ) =
+                    handle msg model data
+            in
+            if persist then
+                ( newModel, saveState newModel )
+
+            else
+                ( newModel, Cmd.none )
+
+        _ ->
+            ( model, Cmd.none )
+
+
+handle : ProductoMsg -> Model -> ProductosPageData -> ( Model, Bool )
+handle msg model data =
     case msg of
         InputNombreProducto val ->
-            { model | nuevoProducto = { nombre = val, precio = model.nuevoProducto.precio } }
+            let
+                form =
+                    data.form
+            in
+            ( setPage model { data | form = { form | nombre = val } }, False )
 
         InputPrecioProducto val ->
-            { model | nuevoProducto = { nombre = model.nuevoProducto.nombre, precio = val } }
-
-        InputBusqueda val ->
-            { model | busquedaProducto = val }
-
-        AgregarProducto ->
             let
-                nuevoProducto =
-                    case model.interfaz of
-                        EditandoProducto id ->
-                            { id = id, nombre = model.nuevoProducto.nombre, precio = String.toFloat model.nuevoProducto.precio |> Maybe.withDefault 0.0 }
-
-                        _ ->
-                            { id = model.nextProductoId, nombre = model.nuevoProducto.nombre, precio = String.toFloat model.nuevoProducto.precio |> Maybe.withDefault 0.0 }
-
-                nuevoCatalogo =
-                    case model.interfaz of
-                        EditandoProducto id ->
-                            List.map
-                                (\p ->
-                                    if p.id == id then
-                                        nuevoProducto
-
-                                    else
-                                        p
-                                )
-                                model.catalogo
-
-                        _ ->
-                            model.catalogo ++ [ nuevoProducto ]
+                form =
+                    data.form
             in
-            { model
-                | catalogo = nuevoCatalogo
-                , nextProductoId =
-                    case model.interfaz of
-                        EditandoProducto _ ->
-                            model.nextProductoId
+            ( setPage model { data | form = { form | precio = val } }, False )
 
-                        _ ->
-                            model.nextProductoId + 1
-                , nuevoProducto = { nombre = "", precio = "" }
-                , interfaz = Normal
-            }
+        CrearProducto ->
+            case validateForm data.form of
+                Just ( nombre, cents ) ->
+                    let
+                        nuevo =
+                            { id = model.nextProductoId
+                            , nombre = nombre
+                            , precioCents = cents
+                            }
+                    in
+                    ( { model
+                        | catalogo = model.catalogo ++ [ nuevo ]
+                        , nextProductoId = model.nextProductoId + 1
+                        , page = ProductosPage (resetForm data)
+                      }
+                    , True
+                    )
 
-        EliminarProducto id ->
-            { model | catalogo = List.filter (\p -> p.id /= id) model.catalogo, interfaz = Normal }
+                Nothing ->
+                    ( model, False )
 
-        PedirEliminarProducto id ->
-            { model | interfaz = ConfirmandoEliminarProducto id }
+        GuardarEdicionProducto id ->
+            case validateForm data.form of
+                Just ( nombre, cents ) ->
+                    let
+                        actualizar p =
+                            if p.id == id then
+                                { p | nombre = nombre, precioCents = cents }
 
-        CancelarEliminarProducto ->
-            { model | interfaz = Normal }
+                            else
+                                p
+                    in
+                    ( { model
+                        | catalogo = List.map actualizar model.catalogo
+                        , page = ProductosPage (resetForm data)
+                      }
+                    , True
+                    )
 
-        ConfirmarEliminarProducto ->
-            case model.interfaz of
-                ConfirmandoEliminarProducto id ->
-                    update (EliminarProducto id) model
-
-                _ ->
-                    model
+                Nothing ->
+                    ( model, False )
 
         EditarProducto id ->
             case List.filter (\p -> p.id == id) model.catalogo |> List.head of
                 Just p ->
-                    { model | interfaz = EditandoProducto id, nuevoProducto = { nombre = p.nombre, precio = String.fromFloat p.precio } }
+                    ( setPage model
+                        { data
+                            | form =
+                                { nombre = p.nombre
+                                , precio = Money.centsToDecimalString p.precioCents
+                                }
+                            , editandoId = Just id
+                        }
+                    , False
+                    )
 
                 Nothing ->
-                    model
+                    ( model, False )
+
+        PedirEliminarProducto id ->
+            ( setPage model { data | confirmandoEliminar = Just id }, False )
+
+        CancelarEliminarProducto ->
+            ( setPage model { data | confirmandoEliminar = Nothing }, False )
+
+        ConfirmarEliminarProducto ->
+            case data.confirmandoEliminar of
+                Just id ->
+                    ( { model
+                        | catalogo = List.filter (\p -> p.id /= id) model.catalogo
+                        , page = ProductosPage { data | confirmandoEliminar = Nothing }
+                      }
+                    , True
+                    )
+
+                Nothing ->
+                    ( model, False )
+
+
+validateForm : { nombre : String, precio : String } -> Maybe ( String, Int )
+validateForm form =
+    let
+        nombre =
+            String.trim form.nombre
+    in
+    if nombre == "" then
+        Nothing
+
+    else
+        case Money.parseCents form.precio of
+            Just cents ->
+                if cents > 0 then
+                    Just ( nombre, cents )
+
+                else
+                    Nothing
+
+            Nothing ->
+                Nothing
+
+
+resetForm : ProductosPageData -> ProductosPageData
+resetForm data =
+    { data | form = { nombre = "", precio = "" }, editandoId = Nothing }
+
+
+setPage : Model -> ProductosPageData -> Model
+setPage model data =
+    { model | page = ProductosPage data }

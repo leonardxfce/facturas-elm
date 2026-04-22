@@ -2,7 +2,16 @@ module Persistence exposing (decodeModel, encodeDatosBase)
 
 import Json.Decode as Decode
 import Json.Encode as Encode
-import Types exposing (..)
+import Types
+    exposing
+        ( Estado(..)
+        , Item
+        , Model
+        , Pedido
+        , Producto
+        , ProductoSnapshot
+        , estadoToString
+        )
 
 
 encodeDatosBase : Model -> Encode.Value
@@ -15,6 +24,10 @@ encodeDatosBase model =
         ]
 
 
+{-| Returns a patcher (Model -> Model) rather than a full Model because the
+base model holds runtime-only state (Nav.Key, Url, PageState) that can't come
+from JSON. `Main.init` merges the decoded data onto a freshly-built base.
+-}
 decodeModel : Decode.Decoder (Model -> Model)
 decodeModel =
     decodeDatosBase
@@ -22,7 +35,10 @@ decodeModel =
 
 decodeDatosBase : Decode.Decoder (Model -> Model)
 decodeDatosBase =
-    Decode.map4 (\c p nP nE -> \base -> { base | catalogo = c, pedidos = p, nextProductoId = nP, nextPedidoId = nE })
+    Decode.map4
+        (\c p nP nE ->
+            \base -> { base | catalogo = c, pedidos = p, nextProductoId = nP, nextPedidoId = nE }
+        )
         (Decode.oneOf [ Decode.field "catalogo" (Decode.list decodeProducto), Decode.succeed [] ])
         (Decode.oneOf [ Decode.field "pedidos" (Decode.list decodePedido), Decode.succeed [] ])
         (Decode.oneOf [ Decode.field "nextProductoId" Decode.int, Decode.succeed 1 ])
@@ -34,7 +50,7 @@ encodeProducto p =
     Encode.object
         [ ( "id", Encode.int p.id )
         , ( "nombre", Encode.string p.nombre )
-        , ( "precio", Encode.float p.precio )
+        , ( "precioCents", Encode.int p.precioCents )
         ]
 
 
@@ -55,7 +71,7 @@ encodeItem i =
         , ( "snapshot"
           , Encode.object
                 [ ( "nombre", Encode.string i.snapshot.nombre )
-                , ( "precio", Encode.float i.snapshot.precio )
+                , ( "precioCents", Encode.int i.snapshot.precioCents )
                 ]
           )
         , ( "cantidad", Encode.int i.cantidad )
@@ -67,7 +83,7 @@ decodeProducto =
     Decode.map3 Producto
         (Decode.field "id" Decode.int)
         (Decode.oneOf [ Decode.field "nombre" Decode.string, Decode.succeed "Producto sin nombre" ])
-        (Decode.oneOf [ Decode.field "precio" Decode.float, Decode.succeed 0.0 ])
+        (Decode.field "precioCents" Decode.int)
 
 
 decodePedido : Decode.Decoder Pedido
@@ -84,9 +100,9 @@ decodeItem =
     Decode.map3 Item
         (Decode.field "productoId" Decode.int)
         (Decode.field "snapshot"
-            (Decode.map2 (\n p -> { nombre = n, precio = p })
+            (Decode.map2 ProductoSnapshot
                 (Decode.oneOf [ Decode.field "nombre" Decode.string, Decode.succeed "Producto Histórico" ])
-                (Decode.oneOf [ Decode.field "precio" Decode.float, Decode.succeed 0.0 ])
+                (Decode.field "precioCents" Decode.int)
             )
         )
         (Decode.field "cantidad" Decode.int)

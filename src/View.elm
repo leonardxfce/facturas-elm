@@ -1,8 +1,8 @@
 module View exposing (view)
 
 import Html exposing (Html, text)
-import Messages exposing (..)
-import Types exposing (..)
+import Messages exposing (Msg)
+import Types exposing (Model, PageState(..))
 import View.Inicio as Inicio
 import View.Pedidos as Pedidos
 import View.Productos as Productos
@@ -10,20 +10,20 @@ import View.Productos as Productos
 
 view : Model -> Html Msg
 view model =
-    case model.paginaActual of
-        Inicio ->
+    case model.page of
+        InicioPage ->
             Inicio.viewInicio
 
-        GestionProductos ->
-            Productos.viewGestionProductos model
+        ProductosPage data ->
+            Productos.viewGestionProductos model.catalogo data
 
-        ListadoPedidos ->
-            Pedidos.viewListadoPedidos model
+        PedidosListPage ->
+            Pedidos.viewListadoPedidos model.pedidos
 
-        EditandoPedido id ->
-            case List.filter (\p -> p.id == id) model.pedidos |> List.head of
-                Just p ->
-                    Pedidos.viewEditarPedido model p
+        PedidoEditPage data ->
+            case List.filter (\p -> p.id == data.pedidoId) model.pedidos |> List.head of
+                Just pedido ->
+                    Pedidos.viewEditarPedido model.catalogo data pedido
 
                 Nothing ->
-                    text "Pedido no encontrado"
+                    text ""

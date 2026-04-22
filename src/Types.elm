@@ -1,6 +1,22 @@
-module Types exposing (Estado(..), InterfazEstado(..), Item, Model, Pagina(..), Pedido, Producto, estadoToString, initModel)
+module Types exposing
+    ( Estado(..)
+    , FormularioProducto
+    , Item
+    , Model
+    , PageState(..)
+    , Pedido
+    , PedidoEditPageData
+    , Producto
+    , ProductoSnapshot
+    , ProductosPageData
+    , emptyProductosPage
+    , estadoToString
+    , initModel
+    , initPedidoEditPage
+    )
 
 import Browser.Navigation as Nav
+import Money exposing (Cents)
 import Url exposing (Url)
 
 
@@ -9,30 +25,16 @@ type Estado
     | Entregado
 
 
-type Pagina
-    = Inicio
-    | GestionProductos
-    | ListadoPedidos
-    | EditandoPedido Int
-
-
-type InterfazEstado
-    = Normal
-    | EditandoProducto Int
-    | ConfirmandoEliminarItem { pedidoId : Int, productoId : Int }
-    | ConfirmandoEliminarProducto Int
-
-
 type alias Producto =
     { id : Int
     , nombre : String
-    , precio : Float
+    , precioCents : Cents
     }
 
 
 type alias ProductoSnapshot =
     { nombre : String
-    , precio : Float
+    , precioCents : Cents
     }
 
 
@@ -40,12 +42,6 @@ type alias Item =
     { productoId : Int
     , snapshot : ProductoSnapshot
     , cantidad : Int
-    }
-
-
-type alias FormularioProducto =
-    { nombre : String
-    , precio : String
     }
 
 
@@ -57,32 +53,71 @@ type alias Pedido =
     }
 
 
+type alias FormularioProducto =
+    { nombre : String
+    , precio : String
+    }
+
+
+type alias ProductosPageData =
+    { form : FormularioProducto
+    , editandoId : Maybe Int
+    , confirmandoEliminar : Maybe Int
+    }
+
+
+emptyProductosPage : ProductosPageData
+emptyProductosPage =
+    { form = { nombre = "", precio = "" }
+    , editandoId = Nothing
+    , confirmandoEliminar = Nothing
+    }
+
+
+type alias PedidoEditPageData =
+    { pedidoId : Int
+    , busqueda : String
+    , confirmandoEliminarItem : Maybe Int
+    }
+
+
+initPedidoEditPage : Int -> PedidoEditPageData
+initPedidoEditPage id =
+    { pedidoId = id
+    , busqueda = ""
+    , confirmandoEliminarItem = Nothing
+    }
+
+
+type PageState
+    = InicioPage
+    | ProductosPage ProductosPageData
+    | PedidosListPage
+    | PedidoEditPage PedidoEditPageData
+
+
 type alias Model =
     { key : Nav.Key
     , url : Url
+    , basePath : String
     , catalogo : List Producto
     , pedidos : List Pedido
     , nextProductoId : Int
     , nextPedidoId : Int
-    , nuevoProducto : FormularioProducto
-    , busquedaProducto : String
-    , interfaz : InterfazEstado
-    , paginaActual : Pagina
+    , page : PageState
     }
 
 
-initModel : Nav.Key -> Url -> Model
-initModel key url =
+initModel : String -> Nav.Key -> Url -> Model
+initModel basePath key url =
     { key = key
     , url = url
+    , basePath = basePath
     , catalogo = []
     , pedidos = []
     , nextProductoId = 1
     , nextPedidoId = 1
-    , nuevoProducto = { nombre = "", precio = "" }
-    , busquedaProducto = ""
-    , interfaz = Normal
-    , paginaActual = Inicio
+    , page = InicioPage
     }
 
 

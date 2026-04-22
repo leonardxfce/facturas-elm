@@ -4,32 +4,37 @@ import Html exposing (Html, button, input, section, text)
 import Html.Attributes exposing (disabled, id, name, placeholder, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Messages exposing (Msg(..), ProductoMsg(..))
-import Types exposing (..)
+import Money
+import Types exposing (ProductosPageData)
 
 
-viewFormulario : Model -> Html Msg
-viewFormulario model =
+viewFormulario : ProductosPageData -> Html Msg
+viewFormulario data =
     let
         nombreValido =
-            String.trim model.nuevoProducto.nombre /= ""
+            String.trim data.form.nombre /= ""
 
         precioValido =
-            (String.toFloat model.nuevoProducto.precio |> Maybe.withDefault 0.0) > 0
+            case Money.parseCents data.form.precio of
+                Just c ->
+                    c > 0
+
+                Nothing ->
+                    False
 
         formularioValido =
             nombreValido && precioValido
+
+        ( btnMsg, btnText ) =
+            case data.editandoId of
+                Just productoId ->
+                    ( ProdMsg (GuardarEdicionProducto productoId), "💾" )
+
+                Nothing ->
+                    ( ProdMsg CrearProducto, "➕" )
     in
     section []
-        [ input [ id "producto-nombre", name "nombre", placeholder "Nombre", value model.nuevoProducto.nombre, onInput (ProdMsg << InputNombreProducto) ] []
-        , input [ id "producto-precio", name "precio", placeholder "Precio", type_ "number", value model.nuevoProducto.precio, onInput (ProdMsg << InputPrecioProducto) ] []
-        , button [ onClick (ProdMsg AgregarProducto), disabled (not formularioValido) ]
-            [ text
-                (case model.interfaz of
-                    EditandoProducto _ ->
-                        "💾"
-
-                    _ ->
-                        "➕"
-                )
-            ]
+        [ input [ id "producto-nombre", name "nombre", placeholder "Nombre", value data.form.nombre, onInput (ProdMsg << InputNombreProducto) ] []
+        , input [ id "producto-precio", name "precio", placeholder "Precio", type_ "number", value data.form.precio, onInput (ProdMsg << InputPrecioProducto) ] []
+        , button [ onClick btnMsg, disabled (not formularioValido) ] [ text btnText ]
         ]
