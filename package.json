@@ -11,7 +11,9 @@
     "lint": "bun x elm-review  --fix-all-without-prompt",
     "type-check": "tsc --noEmit",
     "build": "esbuild src/app.ts --bundle --outfile=public/app.js --minify",
-    "compile-elm": "elm make src/Main.elm --output=public/main.js"
+    "compile-elm": "elm make src/Main.elm --output=public/main.js",
+    "deploy": "wrangler deploy",
+    "preview": "wrangler dev"
   },
   "keywords": [],
   "author": "",
@@ -27,7 +29,8 @@
     "elm-watch": "^1.2.6",
     "esbuild": "^0.28.0",
     "live-server": "^1.2.2",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "wrangler": "^4.84.1"
   },
   "dependencies": {
     "@types/web": "^0.0.347",
